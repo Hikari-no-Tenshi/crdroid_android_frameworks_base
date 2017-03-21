@@ -22,6 +22,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.ContentObserver;
 import android.os.Handler;
+import android.os.UserHandle;
 import android.provider.Settings;
 import android.util.Log;
 
@@ -70,7 +71,7 @@ public class BootReceiver extends BroadcastReceiver {
                 mContext.startService(fpsinfo);
             } else {
                 mContext.stopService(fpsinfo);
-	    }
+            }
             updateRefreshRate();
         }
     }
@@ -133,9 +134,16 @@ public class BootReceiver extends BroadcastReceiver {
             if (Settings.Global.getInt(mContext.getContentResolver(), Settings.Global.SHOW_FPS_OVERLAY, 0) != 0) {
                 Intent fpsinfo = new Intent(mContext, com.android.systemui.FPSInfoService.class);
                 mContext.startService(fpsinfo);
-  	    }
+            }
 
             updateRefreshRate();
+
+            // start the screen state service if activated
+            if (Settings.System.getIntForUser(mContext.getContentResolver(),
+                    Settings.System.START_SCREEN_STATE_SERVICE, 0, UserHandle.USER_CURRENT) != 0) {
+                Intent screenstate = new Intent(mContext, com.android.systemui.crdroid.screenstate.ScreenStateService.class);
+                mContext.startService(screenstate);
+            }
         } catch (Exception e) {
             Log.e(TAG, "Can't start load average service", e);
         }
