@@ -33,7 +33,7 @@ import com.android.systemui.plugins.FalsingManager;
 import com.android.systemui.plugins.statusbar.StatusBarStateController;
 import com.android.systemui.plugins.statusbar.StatusBarStateController.StateListener;
 import com.android.systemui.statusbar.StatusBarState;
-import com.android.systemui.util.ProximitySensor;
+import com.android.systemui.util.sensors.ProximitySensor;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;

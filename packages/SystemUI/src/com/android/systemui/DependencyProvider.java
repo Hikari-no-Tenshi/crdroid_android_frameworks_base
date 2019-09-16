@@ -22,6 +22,7 @@ import static com.android.systemui.Dependency.MAIN_HANDLER_NAME;
 import static com.android.systemui.Dependency.TIME_TICK_HANDLER_NAME;
 
 import android.annotation.Nullable;
+import android.app.AlarmManager;
 import android.app.INotificationManager;
 import android.content.Context;
 import android.hardware.SensorPrivacyManager;
@@ -220,5 +221,12 @@ public class DependencyProvider {
     public PulseController providePulseController(Context context,
             @Named(MAIN_HANDLER_NAME) Handler mainHandler) {
         return new PulseControllerImpl(context, mainHandler);
+    }
+
+    /** */
+    @Singleton
+    @Provides
+    public AlarmManager provideAlarmManager(Context context) {
+        return context.getSystemService(AlarmManager.class);
     }
 }

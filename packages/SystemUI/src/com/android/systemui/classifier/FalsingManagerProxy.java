@@ -21,6 +21,7 @@ import static com.android.systemui.Dependency.MAIN_HANDLER_NAME;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.provider.DeviceConfig;
@@ -35,7 +36,7 @@ import com.android.systemui.plugins.FalsingManager;
 import com.android.systemui.plugins.FalsingPlugin;
 import com.android.systemui.plugins.PluginListener;
 import com.android.systemui.shared.plugins.PluginManager;
-import com.android.systemui.util.ProximitySensor;
+import com.android.systemui.util.sensors.ProximitySensor;
 
 import java.io.PrintWriter;
 
@@ -64,6 +65,7 @@ public class FalsingManagerProxy implements FalsingManager {
         mMainHandler = handler;
         mProximitySensor = proximitySensor;
         mProximitySensor.setTag(PROXIMITY_SENSOR_TAG);
+        mProximitySensor.setSensorDelay(SensorManager.SENSOR_DELAY_GAME);
         DeviceConfig.addOnPropertiesChangedListener(DeviceConfig.NAMESPACE_SYSTEMUI,
                 command -> mMainHandler.post(command),
                 properties -> onDeviceConfigPropertiesChanged(context, properties.getNamespace())

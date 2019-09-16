@@ -31,7 +31,7 @@ import androidx.test.filters.SmallTest;
 import com.android.systemui.SysuiTestCase;
 import com.android.systemui.classifier.brightline.BrightLineFalsingManager;
 import com.android.systemui.shared.plugins.PluginManager;
-import com.android.systemui.util.ProximitySensor;
+import com.android.systemui.util.sensors.ProximitySensor;
 
 import org.junit.After;
 import org.junit.Before;
