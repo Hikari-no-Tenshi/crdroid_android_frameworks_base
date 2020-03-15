@@ -66,8 +66,7 @@ import java.util.NoSuchElementException;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class FODCircleView extends ImageView implements ConfigurationListener,
-        TunerService.Tunable {
+public class FODCircleView extends ImageView implements ConfigurationListener {
     private final int mPositionX;
     private final int mPositionY;
     private final int mSize;
@@ -75,7 +74,6 @@ public class FODCircleView extends ImageView implements ConfigurationListener,
     private final int mNavigationBarSize;
     private final boolean mShouldBoostBrightness;
     private final Paint mPaintFingerprint = new Paint();
-    private final String SCREEN_BRIGHTNESS ="system:" + Settings.System.SCREEN_BRIGHTNESS;
     private final WindowManager.LayoutParams mParams = new WindowManager.LayoutParams();
     private final WindowManager mWindowManager;
 
@@ -210,8 +208,56 @@ public class FODCircleView extends ImageView implements ConfigurationListener,
         }
     };
 
+    private class BrightnessObserver extends ContentObserver {
+        Context mContext;
+
+        private boolean mRegistered;
+
+        BrightnessObserver(Context context, Handler handler) {
+            super(handler);
+            mContext = context;
+        }
+
+        public void registerBrightnessListener() {
+            if (!mRegistered) {
+                mContext.getContentResolver().registerContentObserver(
+                        Settings.System.getUriFor(
+                        Settings.System.SCREEN_BRIGHTNESS),
+                        false, this, UserHandle.USER_ALL);
+                updateCurrentBrightnessValue();
+                mRegistered = true;
+            }
+        }
+
+        public void unregisterBrightnessListener() {
+            if (mRegistered) {
+                mContext.getContentResolver().unregisterContentObserver(this);
+                mRegistered = false;
+            }
+        }
+
+        @Override
+        public void onChange(boolean selfChange, Uri uri) {
+            super.onChange(selfChange, uri);
+            if (uri.equals(Settings.System.getUriFor(
+                    Settings.System.SCREEN_BRIGHTNESS))) {
+                updateCurrentBrightnessValue();
+            }
+        }
+
+        public void updateCurrentBrightnessValue() {
+            int currentBrightness = Settings.System.getIntForUser(mContext.getContentResolver(),
+                    Settings.System.SCREEN_BRIGHTNESS, 0,
+                    UserHandle.USER_CURRENT);
+            mCurrentBrightness = currentBrightness;
+            setDim(true);
+        }
+    }
+
     private boolean mCutoutMasked;
     private int mStatusbarHeight;
+
+    private BrightnessObserver mBrightnessObserver;
 
     public FODCircleView(Context context) {
         super(context);
@@ -264,6 +310,8 @@ public class FODCircleView extends ImageView implements ConfigurationListener,
 
         mUpdateMonitor = KeyguardUpdateMonitor.getInstance(context);
         mUpdateMonitor.registerCallback(mMonitorCallback);
+
+        mBrightnessObserver = new BrightnessObserver(context, mHandler);
 
         updateCutoutFlags();
 
@@ -371,12 +419,6 @@ public class FODCircleView extends ImageView implements ConfigurationListener,
     public void onConfigurationChanged(Configuration newConfig) {
         updateStyle();
         updatePosition();
-    }
-
-    @Override
-    public void onTuningChanged(String key, String newValue) {
-        mCurBrightness = newValue != null ? Integer.parseInt(newValue) : 0;
-        setDim(true);
     }
 
     public IFingerprintInscreen getFingerprintInScreenDaemon() {
@@ -542,7 +584,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener,
             return;
         }
 
-        Dependency.get(TunerService.class).addTunable(this, SCREEN_BRIGHTNESS);
+        mBrightnessObserver.registerBrightnessListener();
 
         mIsShowing = true;
         mIsAuthenticated = false;
@@ -563,7 +605,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener,
         setVisibility(View.GONE);
         hideCircle();
         dispatchHide();
-        Dependency.get(TunerService.class).removeTunable(this);
+        mBrightnessObserver.unregisterBrightnessListener();
     }
 
     private void updateAlpha() {
