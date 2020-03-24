@@ -16,6 +16,12 @@
 
 package com.android.systemui.biometrics;
 
+import static com.android.internal.widget.LockPatternUtils.StrongAuthTracker.STRONG_AUTH_REQUIRED_AFTER_DPM_LOCK_NOW;
+import static com.android.internal.widget.LockPatternUtils.StrongAuthTracker.STRONG_AUTH_REQUIRED_AFTER_LOCKOUT;
+import static com.android.internal.widget.LockPatternUtils.StrongAuthTracker.STRONG_AUTH_REQUIRED_AFTER_TIMEOUT;
+import static com.android.internal.widget.LockPatternUtils.StrongAuthTracker.STRONG_AUTH_REQUIRED_AFTER_USER_LOCKDOWN;
+
+import android.app.ActivityManager;
 import android.app.WallpaperColors;
 import android.app.WallpaperManager;
 import android.app.admin.DevicePolicyManager;
@@ -127,6 +133,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
     private boolean mIsShowing;
     private boolean mPressedViewDisplayed = false;
     private boolean mUseWallpaperColor;
+    private boolean mCanUnlockWithFp;
 
     private Handler mHandler;
 
@@ -223,7 +230,35 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
                 mHandler.post(() -> mFODAnimation.hideFODanimation());
             }
         }
+
+        @Override
+        public void onStrongAuthStateChanged(int userId) {
+            mCanUnlockWithFp = canUnlockWithFp();
+            if (mIsShowing && !mCanUnlockWithFp){
+                hide();
+            }
+        }
     };
+
+    private boolean canUnlockWithFp() {
+        int currentUser = ActivityManager.getCurrentUser();
+        boolean biometrics = mUpdateMonitor.isUnlockingWithBiometricsPossible(currentUser);
+        KeyguardUpdateMonitor.StrongAuthTracker strongAuthTracker =
+                mUpdateMonitor.getStrongAuthTracker();
+        int strongAuth = strongAuthTracker.getStrongAuthForUser(currentUser);
+        if (biometrics && !strongAuthTracker.hasUserAuthenticatedSinceBoot()) {
+            return false;
+        } else if (biometrics && (strongAuth & STRONG_AUTH_REQUIRED_AFTER_TIMEOUT) != 0) {
+            return false;
+        } else if (biometrics && (strongAuth & STRONG_AUTH_REQUIRED_AFTER_DPM_LOCK_NOW) != 0) {
+            return false;
+        } else if (biometrics && (strongAuth & STRONG_AUTH_REQUIRED_AFTER_LOCKOUT) != 0) {
+            return false;
+        } else if (biometrics && (strongAuth & STRONG_AUTH_REQUIRED_AFTER_USER_LOCKDOWN) != 0) {
+            return false;
+        }
+        return true;
+    }
 
     private boolean mCutoutMasked;
     private int mStatusbarHeight;
@@ -309,6 +344,8 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
 
         mUpdateMonitor = KeyguardUpdateMonitor.getInstance(context);
         mUpdateMonitor.registerCallback(mMonitorCallback);
+
+        mCanUnlockWithFp = canUnlockWithFp();
 
         updateCutoutFlags();
 
@@ -592,6 +629,11 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
     public void show() {
         if (mIsBouncer && !isPinOrPattern(mUpdateMonitor.getCurrentUser())) {
             // Ignore show calls when Keyguard password screen is being shown
+            return;
+        }
+
+        if (!mCanUnlockWithFp){
+            // Ignore when unlocking with fp is not possible
             return;
         }
 
