@@ -79,7 +79,6 @@ public class DozeSensors {
     private long mDebounceFrom;
     private boolean mSettingRegistered;
     private boolean mListening;
-    private boolean mPaused;
 
     public DozeSensors(Context context, AlarmManager alarmManager, SensorManager sensorManager,
             DozeParameters dozeParameters, AmbientDisplayConfiguration config, WakeLock wakeLock,
@@ -189,18 +188,6 @@ public class DozeSensors {
             return;
         }
         mListening = listen;
-        updateListening();
-    }
-
-    /**
-     * Unregister sensors, when listening, unless they are prox gated.
-     * @see #setListening(boolean)
-     */
-    public void setPaused(boolean paused) {
-        if (mPaused == paused) {
-            return;
-        }
-        mPaused = paused;
         updateListening();
     }
 

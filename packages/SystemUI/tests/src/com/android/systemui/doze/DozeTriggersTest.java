@@ -33,6 +33,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.testing.AndroidTestingRunner;
 import android.testing.TestableLooper.RunWithLooper;
+import android.view.Display;
 
 import androidx.test.filters.SmallTest;
 
@@ -111,6 +112,7 @@ public class DozeTriggersTest extends SysuiTestCase {
         when(mMachine.getState()).thenReturn(DozeMachine.State.DOZE);
 
         mTriggers.transitionTo(DozeMachine.State.INITIALIZED, DozeMachine.State.DOZE);
+        mTriggers.onScreenState(Display.STATE_OFF);
         verify(mSensors).requestTriggerSensor(any(), eq(mTapSensor));
 
         clearInvocations(mSensors);
@@ -118,6 +120,7 @@ public class DozeTriggersTest extends SysuiTestCase {
                 DozeMachine.State.DOZE_REQUEST_PULSE);
         mTriggers.transitionTo(DozeMachine.State.DOZE_REQUEST_PULSE,
                 DozeMachine.State.DOZE_PULSING);
+        mTriggers.onScreenState(Display.STATE_DOZE);
         verify(mSensors).cancelTriggerSensor(any(), eq(mTapSensor));
 
         clearInvocations(mSensors);
