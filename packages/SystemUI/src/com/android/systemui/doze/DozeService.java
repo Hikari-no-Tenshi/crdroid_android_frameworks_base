@@ -134,4 +134,10 @@ public class DozeService extends DreamService
             mDozeMachine.requestState(DozeMachine.State.DOZE);
         }
     }
+
+    @Override
+    public void setDozeScreenState(int state) {
+        super.setDozeScreenState(state);
+        mDozeMachine.onScreenState(state);
+    }
 }

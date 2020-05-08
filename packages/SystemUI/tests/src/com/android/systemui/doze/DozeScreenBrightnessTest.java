@@ -35,6 +35,7 @@ import android.content.Intent;
 import android.os.PowerManager;
 import android.os.UserHandle;
 import android.provider.Settings;
+import android.view.Display;
 
 import androidx.test.filters.SmallTest;
 import androidx.test.runner.AndroidJUnit4;
@@ -73,6 +74,8 @@ public class DozeScreenBrightnessTest extends SysuiTestCase {
                 mSensor.getSensor(), mHostFake, null /* handler */,
                 DEFAULT_BRIGHTNESS, SENSOR_TO_BRIGHTNESS, SENSOR_TO_OPACITY,
                 true /* debuggable */);
+
+        mScreen.onScreenState(Display.STATE_ON);
     }
 
     @Test
@@ -84,9 +87,11 @@ public class DozeScreenBrightnessTest extends SysuiTestCase {
     }
 
     @Test
-    public void testAod_usesLightSensor() throws Exception {
+    public void testAod_usesLightSensor() {
         mScreen.transitionTo(UNINITIALIZED, INITIALIZED);
         mScreen.transitionTo(INITIALIZED, DOZE_AOD);
+        mScreen.transitionTo(DOZE_AOD, FINISH);
+        mScreen.onScreenState(Display.STATE_DOZE);
 
         mSensor.sendSensorEvent(3);
 
@@ -118,40 +123,16 @@ public class DozeScreenBrightnessTest extends SysuiTestCase {
     }
 
     @Test
-    public void testPausingAod_doesntPauseLightSensor() throws Exception {
-        mScreen.transitionTo(UNINITIALIZED, INITIALIZED);
-        mScreen.transitionTo(INITIALIZED, DOZE_AOD);
-
-        mSensor.sendSensorEvent(1);
-
-        mScreen.transitionTo(DOZE_AOD, DOZE_AOD_PAUSING);
-        mScreen.transitionTo(DOZE_AOD_PAUSING, DOZE_AOD_PAUSED);
-
-        mSensor.sendSensorEvent(2);
-
-        assertEquals(2, mServiceFake.screenBrightness);
-    }
-
-    @Test
     public void testPausingAod_doesNotResetBrightness() throws Exception {
         mScreen.transitionTo(UNINITIALIZED, INITIALIZED);
         mScreen.transitionTo(INITIALIZED, DOZE_AOD);
+        mScreen.transitionTo(DOZE_AOD, FINISH);
+        mScreen.onScreenState(Display.STATE_DOZE);
 
         mSensor.sendSensorEvent(1);
 
         mScreen.transitionTo(DOZE_AOD, DOZE_AOD_PAUSING);
         mScreen.transitionTo(DOZE_AOD_PAUSING, DOZE_AOD_PAUSED);
-
-        assertEquals(1, mServiceFake.screenBrightness);
-    }
-
-    @Test
-    public void testPulsing_usesLightSensor() throws Exception {
-        mScreen.transitionTo(UNINITIALIZED, INITIALIZED);
-        mScreen.transitionTo(INITIALIZED, DOZE);
-        mScreen.transitionTo(DOZE, DOZE_REQUEST_PULSE);
-
-        mSensor.sendSensorEvent(1);
 
         assertEquals(1, mServiceFake.screenBrightness);
     }
@@ -178,6 +159,7 @@ public class DozeScreenBrightnessTest extends SysuiTestCase {
         mScreen.transitionTo(DOZE_REQUEST_PULSE, DOZE_PULSING);
         mScreen.transitionTo(DOZE_PULSING, DOZE_PULSE_DONE);
         mScreen.transitionTo(DOZE_PULSE_DONE, DOZE);
+        mScreen.onScreenState(Display.STATE_DOZE);
 
         mSensor.sendSensorEvent(1);
 
@@ -226,6 +208,8 @@ public class DozeScreenBrightnessTest extends SysuiTestCase {
     public void testNonPositiveBrightness_keepsPreviousBrightnessAndScrim() throws Exception {
         mScreen.transitionTo(UNINITIALIZED, INITIALIZED);
         mScreen.transitionTo(INITIALIZED, DOZE_AOD);
+        mScreen.transitionTo(DOZE_AOD, FINISH);
+        mScreen.onScreenState(Display.STATE_DOZE);
 
         mSensor.sendSensorEvent(1);
         mSensor.sendSensorEvent(0);
@@ -235,18 +219,22 @@ public class DozeScreenBrightnessTest extends SysuiTestCase {
     }
 
     @Test
-    public void pausingAod_unblanksAfterSensor() throws Exception {
+    public void pausingAod_unblanksAfterSensor() {
         mScreen.transitionTo(UNINITIALIZED, INITIALIZED);
         mScreen.transitionTo(INITIALIZED, DOZE_AOD);
+        mScreen.transitionTo(DOZE_AOD, FINISH);
+        mScreen.onScreenState(Display.STATE_DOZE);
 
         mSensor.sendSensorEvent(2);
 
-        mScreen.transitionTo(DOZE_AOD, DOZE_AOD_PAUSING);
+        mScreen.transitionTo(FINISH, DOZE_AOD_PAUSING);
         mScreen.transitionTo(DOZE_AOD_PAUSING, DOZE_AOD_PAUSED);
 
         mSensor.sendSensorEvent(0);
 
         mScreen.transitionTo(DOZE_AOD_PAUSED, DOZE_AOD);
+        mScreen.transitionTo(DOZE_AOD, FINISH);
+        mScreen.onScreenState(Display.STATE_DOZE);
 
         mSensor.sendSensorEvent(2);
 
@@ -257,10 +245,12 @@ public class DozeScreenBrightnessTest extends SysuiTestCase {
     public void pausingAod_unblanksIfSensorWasAlwaysReady() throws Exception {
         mScreen.transitionTo(UNINITIALIZED, INITIALIZED);
         mScreen.transitionTo(INITIALIZED, DOZE_AOD);
+        mScreen.transitionTo(DOZE_AOD, FINISH);
+        mScreen.onScreenState(Display.STATE_DOZE);
 
         mSensor.sendSensorEvent(2);
 
-        mScreen.transitionTo(DOZE_AOD, DOZE_AOD_PAUSING);
+        mScreen.transitionTo(FINISH, DOZE_AOD_PAUSING);
         mScreen.transitionTo(DOZE_AOD_PAUSING, DOZE_AOD_PAUSED);
         mScreen.transitionTo(DOZE_AOD_PAUSED, DOZE_AOD);
 
