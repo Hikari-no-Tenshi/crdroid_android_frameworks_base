@@ -695,7 +695,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener, T
         } else {
             mPressedParams.screenBrightness = 0.0f;
             mPressedParams.dimAmount = 0.0f;
-            if (mPressedView.getParent() != null) {
+            if (mPressedView.getWindowToken() != null) {
                 mWindowManager.removeView(mPressedView);
             }
         }
