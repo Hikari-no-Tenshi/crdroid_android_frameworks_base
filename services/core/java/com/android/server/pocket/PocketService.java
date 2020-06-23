@@ -133,6 +133,7 @@ public class PocketService extends SystemService implements IBinder.DeathRecipie
     private float mProximityMaxRange;
     private boolean mProximityRegistered;
     private Sensor mProximitySensor;
+    private boolean mIsCustomProximitySensor;
 
     // light
     private int mLightState = LIGHT_UNKNOWN;
@@ -150,8 +151,19 @@ public class PocketService extends SystemService implements IBinder.DeathRecipie
         HandlerThread handlerThread = new HandlerThread(TAG, Process.THREAD_PRIORITY_BACKGROUND);
         handlerThread.start();
         mHandler = new PocketHandler(handlerThread.getLooper());
+        final String proximity_sensor = mContext.getResources().getString(com.android.internal.R.string.config_pocketProximitySensorType);
         mSensorManager = (SensorManager) mContext.getSystemService(Context.SENSOR_SERVICE);
-        mProximitySensor = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+        mIsCustomProximitySensor = proximity_sensor != null && !proximity_sensor.isEmpty();
+        if (mIsCustomProximitySensor) {
+            for (Sensor sensor : mSensorManager.getSensorList(Sensor.TYPE_ALL)) {
+                if (proximity_sensor.equals(sensor.getStringType())) {
+                    mProximitySensor = sensor;
+                    break;
+                }
+            }
+        } else {
+            mProximitySensor = mSensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+        }
         if (mProximitySensor != null) {
             mProximityMaxRange = mProximitySensor.getMaximumRange();
         }
