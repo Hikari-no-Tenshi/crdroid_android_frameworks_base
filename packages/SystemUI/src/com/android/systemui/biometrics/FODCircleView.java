@@ -50,6 +50,7 @@ import com.android.internal.widget.LockPatternUtils;
 import com.android.keyguard.KeyguardSecurityModel.SecurityMode;
 import com.android.keyguard.KeyguardUpdateMonitor;
 import com.android.keyguard.KeyguardUpdateMonitorCallback;
+import com.android.settingslib.utils.ThreadUtils;
 import com.android.systemui.Dependency;
 import com.android.systemui.R;
 import com.android.systemui.statusbar.policy.ConfigurationController;
@@ -543,7 +544,9 @@ public class FODCircleView extends ImageView implements TunerService.Tunable, Co
         setKeepScreenOn(true);
 
         setDim(true);
-        dispatchPress();
+        ThreadUtils.postOnBackgroundThread(() -> {
+            dispatchPress();
+        });
 
         if (mFODAnimation != null && mIsRecognizingAnimEnabled) {
             mHandler.post(() -> mFODAnimation.showFODanimation());
@@ -559,7 +562,9 @@ public class FODCircleView extends ImageView implements TunerService.Tunable, Co
         setImageResource(ICON_STYLES[mSelectedIcon]);
         invalidate();
 
-        dispatchRelease();
+        ThreadUtils.postOnBackgroundThread(() -> {
+            dispatchRelease();
+        });
         setDim(false);
 
         if (mFODAnimation != null && mIsRecognizingAnimEnabled) {
@@ -602,7 +607,9 @@ public class FODCircleView extends ImageView implements TunerService.Tunable, Co
                 .setDuration(FADE_ANIM_DURATION)
                 .withEndAction(() -> mFading = false)
                 .start();
-        dispatchShow();
+        ThreadUtils.postOnBackgroundThread(() -> {
+            dispatchShow();
+        });
     }
 
     public void hide() {
@@ -615,7 +622,9 @@ public class FODCircleView extends ImageView implements TunerService.Tunable, Co
                 })
                 .start();
         hideCircle();
-        dispatchHide();
+        ThreadUtils.postOnBackgroundThread(() -> {
+            dispatchHide();
+        });
     }
 
     public int getHeight(boolean includeDecor) {
