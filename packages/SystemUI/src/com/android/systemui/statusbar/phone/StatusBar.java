@@ -234,7 +234,6 @@ import com.android.systemui.statusbar.notification.logging.NotificationLogger;
 import com.android.systemui.statusbar.notification.row.ExpandableNotificationRow;
 import com.android.systemui.statusbar.notification.row.NotificationGutsManager;
 import com.android.systemui.statusbar.notification.stack.NotificationListContainer;
-import com.android.systemui.statusbar.phone.BarTransitions.BarBackgroundDrawable;
 import com.android.systemui.statusbar.phone.Ticker;
 import com.android.systemui.statusbar.phone.TickerView;
 import com.android.systemui.statusbar.phone.UnlockMethodCache.OnUnlockMethodChangedListener;
@@ -260,7 +259,6 @@ import com.android.systemui.statusbar.policy.UserSwitcherController;
 import com.android.systemui.statusbar.policy.ZenModeController;
 import com.android.systemui.tuner.TunerService;
 import com.android.systemui.util.InjectionInflationController;
-import com.android.systemui.util.leak.RotationUtils;
 import com.android.systemui.volume.VolumeComponent;
 
 import lineageos.providers.LineageSettings;
@@ -340,10 +338,6 @@ public class StatusBar extends SystemUI implements DemoMode,
             "system:" + Settings.System.BERRY_DARK_STYLE;
     private static final String BERRY_SWITCH_STYLE =
             "system:" + Settings.System.BERRY_SWITCH_STYLE;
-    private static final String DISPLAY_CUTOUT_MODE =
-            "system:" + Settings.System.DISPLAY_CUTOUT_MODE;
-    private static final String STOCK_STATUSBAR_IN_HIDE =
-            "system:" + Settings.System.STOCK_STATUSBAR_IN_HIDE;
 
     private static final String BANNER_ACTION_CANCEL =
             "com.android.systemui.statusbar.banner_action_cancel";
@@ -681,10 +675,6 @@ public class StatusBar extends SystemUI implements DemoMode,
     private boolean mUseDarkTheme;
     private IOverlayManager mOverlayManager;
 
-    private int mImmerseMode;
-    private boolean mStockStatusBar = true;
-    private boolean mPortrait = true;
-
     // Notifies StatusBarKeyguardViewManager every time the keyguard transition is over,
     // this animation is tied to the scrim for historic reasons.
     // TODO: notify when keyguard has faded away instead of the scrim.
@@ -970,8 +960,6 @@ public class StatusBar extends SystemUI implements DemoMode,
         tunerService.addTunable(this, QS_BACKGROUND_BLUR);
         tunerService.addTunable(this, BERRY_DARK_STYLE);
         tunerService.addTunable(this, BERRY_SWITCH_STYLE);
-        tunerService.addTunable(this, DISPLAY_CUTOUT_MODE);
-        tunerService.addTunable(this, STOCK_STATUSBAR_IN_HIDE);
     }
 
     // ================================================================================
@@ -1061,7 +1049,6 @@ public class StatusBar extends SystemUI implements DemoMode,
                         new BurnInProtectionController(mContext, this, mStatusBarView);
                     mStatusBarContent = (LinearLayout) mStatusBarView.findViewById(R.id.status_bar_contents);
                     mCenterClockLayout = mStatusBarView.findViewById(R.id.center_clock_layout);
-                    handleCutout();
                 }).getFragmentManager()
                 .beginTransaction()
                 .replace(R.id.status_bar_container, new CollapsedStatusBarFragment(),
@@ -3272,16 +3259,12 @@ public class StatusBar extends SystemUI implements DemoMode,
         updateResources();
         updateDisplaySize(); // populates mDisplayMetrics
 
-        mPortrait = RotationUtils.getExactRotation(mContext) == RotationUtils.ROTATION_NONE;
+        if (DEBUG) {
+            Log.v(TAG, "configuration changed: " + mContext.getResources().getConfiguration());
+        }
 
         mViewHierarchyManager.updateRowStates();
         mScreenPinningRequest.onConfigurationChanged();
-
-        if (mImmerseMode == 1) {
-            mUiOffloadThread.submit(() -> {
-                setBlackStatusBar(mPortrait);
-            });
-        }
     }
 
     @Override
@@ -5408,22 +5391,6 @@ public class StatusBar extends SystemUI implements DemoMode,
                     updateSwitchStyle();
                 }
                 break;
-            case DISPLAY_CUTOUT_MODE:
-                int immerseMode =
-                        TunerService.parseInteger(newValue, 0);
-                if (mImmerseMode != immerseMode) {
-                    mImmerseMode = immerseMode;
-                    handleCutout();
-                }
-                break;
-            case STOCK_STATUSBAR_IN_HIDE:
-                boolean stockStatusBar =
-                        TunerService.parseIntegerSwitch(newValue, true);
-                if (mStockStatusBar != stockStatusBar) {
-                    mStockStatusBar = stockStatusBar;
-                    handleCutout();
-                }
-                break;
             default:
                 break;
         }
@@ -5443,27 +5410,4 @@ public class StatusBar extends SystemUI implements DemoMode,
         return mStatusBarMode;
     }
 
-    private void setBlackStatusBar(boolean enable) {
-        if (mStatusBarWindow == null || mStatusBarWindow.getBarTransitions() == null) return;
-        if (enable) {
-            mStatusBarWindow.getBarTransitions().getBackground().setColorOverride(new Integer(0xFF000000));
-        } else {
-            mStatusBarWindow.getBarTransitions().getBackground().setColorOverride(null);
-        }
-    }
-
-    private void handleCutout() {
-        final boolean immerseMode = mImmerseMode == 1;
-        final boolean hideCutoutMode = mImmerseMode == 2;
-
-        mUiOffloadThread.submit(() -> {
-            setBlackStatusBar(mPortrait && immerseMode);
-            ThemeAccentUtils.setImmersiveOverlay(mOverlayManager, mLockscreenUserManager.getCurrentUserId(),
-                immerseMode || hideCutoutMode);
-            ThemeAccentUtils.setCutoutOverlay(mOverlayManager, mLockscreenUserManager.getCurrentUserId(),
-                hideCutoutMode);
-            ThemeAccentUtils.setStatusBarStockOverlay(mOverlayManager, mLockscreenUserManager.getCurrentUserId(),
-                hideCutoutMode && mStockStatusBar);
-        });
-    }
 }
