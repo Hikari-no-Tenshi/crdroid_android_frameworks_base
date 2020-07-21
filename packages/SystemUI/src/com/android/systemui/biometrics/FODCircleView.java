@@ -267,12 +267,14 @@ public class FODCircleView extends ImageView implements ConfigurationListener, T
         mParams.packageName = "android";
         mParams.type = WindowManager.LayoutParams.TYPE_SYSTEM_FINGERPRINT;
         mParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN |
+                WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED;
         mParams.gravity = Gravity.TOP | Gravity.LEFT;
 
         mPressedParams.copyFrom(mParams);
         mPressedParams.type = WindowManager.LayoutParams.TYPE_SYSTEM_FINGERPRINT_HIGH_LIGHT;
         mPressedParams.flags |= WindowManager.LayoutParams.FLAG_DIM_BEHIND;
+        mPressedParams.privateFlags |= WindowManager.LayoutParams.PRIVATE_FLAG_IS_ROUNDED_CORNERS_OVERLAY;
 
         mParams.setTitle("Fingerprint on display");
         mPressedParams.setTitle("Fingerprint on display.touched");
@@ -283,10 +285,11 @@ public class FODCircleView extends ImageView implements ConfigurationListener, T
                 if (mIsCircleShowing) {
                     int fodstate = getFODPressedState();
                     if (fodstate == 0) {
-                        setImageResource(R.drawable.fod_icon_pressed);
+                        mPressedView.setImageResource(R.drawable.fod_icon_pressed);
                     } else if (fodstate == 1) {
-                        setImageResource(R.drawable.fod_icon_pressed_white);
+                        mPressedView.setImageResource(R.drawable.fod_icon_pressed_white);
                     } else if (fodstate == 2) {
+                        mPressedView.setImageDrawable(null);
                         canvas.drawCircle(mSize / 2, mSize / 2, mSize / 2.0f, mPaintFingerprint);
                     }
                 }
@@ -402,18 +405,6 @@ public class FODCircleView extends ImageView implements ConfigurationListener, T
                 Settings.System.FOD_PRESSED_STATE, 0);
     }
 
-    private void setFODPressedState() {
-        int fodpressed = getFODPressedState();
-
-        if (fodpressed == 0) {
-            setImageResource(R.drawable.fod_icon_pressed);
-        } else if (fodpressed == 1) {
-            setImageResource(R.drawable.fod_icon_pressed_white);
-        } else if (fodpressed == 2) {
-            setImageDrawable(null);
-        }
-    }
-
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         float x = event.getAxisValue(MotionEvent.AXIS_X);
@@ -512,7 +503,6 @@ public class FODCircleView extends ImageView implements ConfigurationListener, T
             dispatchPress();
         });
 
-        setFODPressedState();
         updatePosition();
         updateIconDim();
         invalidate();
