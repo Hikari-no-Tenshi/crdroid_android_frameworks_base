@@ -125,6 +125,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
     private boolean mIsKeyguard;
     private boolean mIsCircleShowing;
     private boolean mIsShowing;
+    private boolean mIsScreenTurnedOn;
     private boolean mPressedViewDisplayed = false;
     private boolean mUseWallpaperColor;
 
@@ -204,12 +205,22 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
 
         @Override
         public void onScreenTurnedOff() {
+            mIsScreenTurnedOn = false;
             hide();
         }
 
         @Override
         public void onScreenTurnedOn() {
+            mIsScreenTurnedOn = true;
             if (mUpdateMonitor.isFingerprintDetectionRunning()) {
+                show();
+            }
+        }
+
+        @Override
+        public void onStartedWakingUp() {
+            if (!mIsScreenTurnedOn &&
+                    mUpdateMonitor.isFingerprintDetectionRunning()) {
                 show();
             }
         }
@@ -589,6 +600,11 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
     }
 
     public void show() {
+        if (mIsShowing) {
+            // Ignore show calls when already shown
+            return;
+        }
+
         if (mIsBouncer && !isPinOrPattern(mUpdateMonitor.getCurrentUser())) {
             // Ignore show calls when Keyguard password screen is being shown
             return;
