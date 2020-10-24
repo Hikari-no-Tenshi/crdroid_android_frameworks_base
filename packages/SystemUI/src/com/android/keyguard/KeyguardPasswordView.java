@@ -360,9 +360,9 @@ public class KeyguardPasswordView extends KeyguardAbsKeyInputView
         // is from the user.
         if (!TextUtils.isEmpty(s)) {
             onUserInput();
-            if (quickUnlock) {
+            if (quickUnlock && keyguardPinPasswordLength() != 0) {
                 String entry = new String(getPasswordText());
-                if (entry.length() > MINIMUM_PASSWORD_LENGTH_BEFORE_REPORT
+                if (entry.length() == keyguardPinPasswordLength()
                         && kpvCheckPassword(entry)) {
                     mCallback.reportUnlockAttempt(userId, true, 0);
                     mCallback.dismiss(true, userId);
@@ -415,5 +415,18 @@ public class KeyguardPasswordView extends KeyguardAbsKeyInputView
         } catch (RequestThrottledException ex) {
             return false;
         }
+    }
+
+    private int keyguardPinPasswordLength() {
+        int pinPasswordLength;
+        try {
+            pinPasswordLength = (int) mLockPatternUtils.getLockSettings().getLong("lockscreen.pin_password_length", 0, userId);
+        } catch (Exception e) {
+            pinPasswordLength = 0;
+        }
+        if (pinPasswordLength >= 4) {
+            return pinPasswordLength;
+        }
+        return 0;
     }
 }

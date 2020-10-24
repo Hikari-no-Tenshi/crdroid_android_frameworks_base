@@ -162,7 +162,8 @@ public class KeyguardPINView extends KeyguardPinBasedInputView {
         }
 
         boolean quickUnlock = (Settings.System.getIntForUser(getContext().getContentResolver(),
-                Settings.System.LOCKSCREEN_QUICK_UNLOCK_CONTROL, 0, UserHandle.USER_CURRENT) == 1);
+                Settings.System.LOCKSCREEN_QUICK_UNLOCK_CONTROL, 0, UserHandle.USER_CURRENT) == 1)
+                && keyguardPinPasswordLength() != 0;
 
         if (quickUnlock) {
             mPasswordEntry.setQuickUnlockListener(new QuickUnlockListener() {
@@ -240,7 +241,7 @@ public class KeyguardPINView extends KeyguardPinBasedInputView {
 
     private void validateQuickUnlock(String password) {
         if (password != null) {
-            if (password.length() > MINIMUM_PASSWORD_LENGTH_BEFORE_REPORT
+            if (password.length() == keyguardPinPasswordLength()
                     && kpvCheckPassword(password)) {
                 mPasswordEntry.setEnabled(false);
                 mCallback.reportUnlockAttempt(userId, true, 0);
@@ -256,5 +257,18 @@ public class KeyguardPINView extends KeyguardPinBasedInputView {
         } catch (RequestThrottledException ex) {
             return false;
         }
+    }
+
+    private int keyguardPinPasswordLength() {
+        int pinPasswordLength;
+        try {
+            pinPasswordLength = (int) mLockPatternUtils.getLockSettings().getLong("lockscreen.pin_password_length", 0, userId);
+        } catch (Exception e) {
+            pinPasswordLength = 0;
+        }
+        if (pinPasswordLength >= 4) {
+            return pinPasswordLength;
+        }
+        return 0;
     }
 }
