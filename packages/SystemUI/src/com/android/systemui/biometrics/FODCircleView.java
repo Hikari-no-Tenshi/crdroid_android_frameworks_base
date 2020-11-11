@@ -118,6 +118,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
 
     private int mCurrentBrightness;
     private int mDefaultScreenBrightness;
+    private int mScreenBrightnessDimConfig;
     private int mPressedState;
 
     private boolean mIsBouncer;
@@ -128,6 +129,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
     private boolean mIsScreenTurnedOn;
     private boolean mPressedViewDisplayed = false;
     private boolean mUseWallpaperColor;
+    private boolean mIsScreenDimming;
 
     private Handler mHandler;
 
@@ -321,6 +323,8 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         mWakeLock = mPowerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                 FODCircleView.class.getSimpleName());
         mDefaultScreenBrightness = mPowerManager.getDefaultScreenBrightnessSetting();
+        mScreenBrightnessDimConfig = res.getInteger(
+                com.android.internal.R.integer.config_screenBrightnessDim);
 
         mFODAnimation = new FODAnimation(context, mPositionX, mPositionY);
     }
@@ -343,6 +347,9 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.SCREEN_BRIGHTNESS),
                     false, this, UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.Global.getUriFor(
+                    Settings.Global.SCREEN_IS_DIMMING),
+                    false, this, UserHandle.USER_ALL);
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.FOD_PRESSED_STATE),
                     false, this, UserHandle.USER_ALL);
@@ -361,6 +368,9 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
                 updateStyle();
             } else if (uri.equals(Settings.System.getUriFor(
                     Settings.System.SCREEN_BRIGHTNESS))) {
+                updateIconDim();
+            } else if (uri.equals(Settings.Global.getUriFor(
+                    Settings.Global.SCREEN_IS_DIMMING))) {
                 updateIconDim();
             } else if (uri.equals(Settings.System.getUriFor(
                     Settings.System.FOD_PRESSED_STATE))) {
@@ -391,7 +401,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
     private int getDimAlpha() {
         int length = BRIGHTNESS_ALPHA_ARRAY.length;
         int i = 0;
-        while (i < length && BRIGHTNESS_ALPHA_ARRAY[i][0] < mCurrentBrightness) {
+        while (i < length && BRIGHTNESS_ALPHA_ARRAY[i][0] < (mIsScreenDimming ? mScreenBrightnessDimConfig : mCurrentBrightness)) {
             i++;
         }
         if (i == 0) {
@@ -402,12 +412,14 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         }
         int[][] iArr = BRIGHTNESS_ALPHA_ARRAY;
         int i2 = i - 1;
-        return interpolate(mCurrentBrightness, iArr[i2][0], iArr[i][0], iArr[i2][1], iArr[i][1]);
+        return interpolate(mIsScreenDimming ? mScreenBrightnessDimConfig : mCurrentBrightness, iArr[i2][0], iArr[i][0], iArr[i2][1], iArr[i][1]);
     }
 
     public void updateIconDim() {
         mCurrentBrightness = Settings.System.getIntForUser(mContext.getContentResolver(),
                 Settings.System.SCREEN_BRIGHTNESS, mDefaultScreenBrightness, UserHandle.USER_CURRENT);
+        mIsScreenDimming = Settings.Global.getInt(mContext.getContentResolver(),
+                Settings.Global.SCREEN_IS_DIMMING, 0) == 1;
         if (mTargetUsesInKernelDimming) {
             mHandler.post(() -> setColorFilter(Color.argb(getDimAlpha(), 0, 0, 0), PorterDuff.Mode.SRC_ATOP));
         }
