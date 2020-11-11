@@ -424,6 +424,8 @@ final class DisplayPowerController implements AutomaticBrightnessController.Call
         mScreenBrightnessRangeMinimum =
                 Math.min(screenBrightnessSettingMinimum, mScreenBrightnessDimConfig);
 
+        Settings.Global.putInt(mContext.getContentResolver(), Settings.Global.SCREEN_IS_DIMMING, 0);
+
         mScreenBrightnessRangeMaximum = clampAbsoluteBrightness(resources.getInteger(
                     com.android.internal.R.integer.config_screenBrightnessSettingMaximum));
         mScreenBrightnessDefault = clampAbsoluteBrightness(resources.getInteger(
@@ -1014,9 +1016,11 @@ final class DisplayPowerController implements AutomaticBrightnessController.Call
                 slowChange = false;
             }
             mAppliedDimming = true;
+            Settings.Global.putInt(mContext.getContentResolver(), Settings.Global.SCREEN_IS_DIMMING, 1);
         } else if (mAppliedDimming) {
             slowChange = false;
             mAppliedDimming = false;
+            Settings.Global.putInt(mContext.getContentResolver(), Settings.Global.SCREEN_IS_DIMMING, 0);
         }
 
         // If low power mode is enabled and Smart Pixels Service is stopped,

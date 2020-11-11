@@ -15160,6 +15160,12 @@ public final class Settings {
         public static final String SHOW_ROTATION_BUTTON = "show_rotation_button";
 
         /**
+         * Track of screen dim state
+         * @hide
+         */
+        public static final String SCREEN_IS_DIMMING = "screen_is_dimming";
+
+        /**
          * Settings to backup. This is here so that it's in the same place as the settings
          * keys and easy to update.
          *
