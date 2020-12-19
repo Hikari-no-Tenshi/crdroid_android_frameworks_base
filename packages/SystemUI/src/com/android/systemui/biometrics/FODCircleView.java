@@ -460,6 +460,9 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
             hideCircle();
             return true;
         } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+            if (!newIsInside) {
+                hideCircle();
+            }
             return true;
         }
 
