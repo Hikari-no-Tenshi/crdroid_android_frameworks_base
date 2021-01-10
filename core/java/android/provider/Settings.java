@@ -5420,6 +5420,15 @@ public final class Settings {
         public static final String NAVBAR_STYLE = "navbar_style";
 
         /**
+         * OEM theme mode
+         * 0 - light
+         * 1 - dark
+         * 2 - android
+         * @hide
+         */
+        public static final String OEM_BLACK_MODE = "oem_black_mode";
+
+        /**
          * Settings to backup. This is here so that it's in the same place as the settings
          * keys and easy to update.
          *
