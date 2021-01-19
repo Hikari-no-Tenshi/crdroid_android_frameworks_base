@@ -289,6 +289,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         mPressedParams.copyFrom(mParams);
         mPressedParams.type = WindowManager.LayoutParams.TYPE_SYSTEM_FINGERPRINT_HIGH_LIGHT;
         mPressedParams.flags |= WindowManager.LayoutParams.FLAG_DIM_BEHIND;
+        mPressedParams.dimAmount = 0.0f;
 
         mParams.setTitle("Fingerprint on display");
         mPressedParams.setTitle("Fingerprint on display.touched");
@@ -715,17 +716,19 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         if (dim) {
             int dimAmount = 0;
 
-            try {
-                dimAmount = mDaemon.getDimAmount(mCurrentBrightness);
-            } catch (RemoteException e) {
-                // do nothing
-            }
-
             if (mShouldBoostBrightness) {
                 mPressedParams.screenBrightness = 1.0f;
             }
 
-            mPressedParams.dimAmount = dimAmount / 255.0f;
+            if (!mTargetUsesInKernelDimming) {
+                try {
+                    dimAmount = mDaemon.getDimAmount(mCurrentBrightness);
+                } catch (RemoteException e) {
+                    // do nothing
+                }
+
+                mPressedParams.dimAmount = dimAmount / 255.0f;
+            }
             if (!mPressedViewDisplayed && mIsShowing) {
                 mPressedViewDisplayed = true;
                 mWindowManager.addView(mPressedView, mPressedParams);
@@ -736,7 +739,9 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
             if (mShouldBoostBrightness) {
                 mPressedParams.screenBrightness = 0.0f;
             }
-            mPressedParams.dimAmount = 0.0f;
+            if (!mTargetUsesInKernelDimming) {
+                mPressedParams.dimAmount = 0.0f;
+            }
             if (mPressedViewDisplayed) {
                 mPressedViewDisplayed = false;
                 mWindowManager.removeViewImmediate(mPressedView);
