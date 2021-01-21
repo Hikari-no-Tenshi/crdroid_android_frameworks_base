@@ -259,6 +259,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
 
         Resources res = context.getResources();
 
+        mIconStyles = res.obtainTypedArray(R.array.fod_icon_resources);
         mPaintFingerprint.setColor(res.getColor(R.color.config_fodColor));
         mPaintFingerprint.setAntiAlias(true);
 
@@ -582,7 +583,6 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
                     if (iconcolor != wallColor) {
                         iconcolor = wallColor;
                     }
-                    mIconStyles = mContext.getResources().obtainTypedArray(R.array.fod_icon_resources);
                     mIconBitmap = BitmapFactory.decodeResource(getResources(),
                             mIconStyles.getResourceId(mSelectedIcon, -1)).copy(Bitmap.Config.ARGB_8888, true);
                     mPaintIcon.setColorFilter(new PorterDuffColorFilter(lighter(iconcolor, 3),
@@ -595,7 +595,6 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
                 // Nothing to do
             }
         } else {
-            mIconStyles = mContext.getResources().obtainTypedArray(R.array.fod_icon_resources);
             setImageResource(mIconStyles.getResourceId(mSelectedIcon, -1));
         }
     }
