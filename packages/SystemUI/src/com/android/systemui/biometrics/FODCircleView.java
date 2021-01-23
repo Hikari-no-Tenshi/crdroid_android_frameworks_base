@@ -74,7 +74,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class FODCircleView extends ImageView implements ConfigurationListener {
-    private final String SCREEN_BRIGHTNESS = "system:" + Settings.System.SCREEN_BRIGHTNESS;
     private final int[][] BRIGHTNESS_ALPHA_ARRAY = {
         new int[]{0, 255},
         new int[]{1, 224},
