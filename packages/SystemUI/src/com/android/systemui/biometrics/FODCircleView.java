@@ -184,7 +184,6 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         @Override
         public void onKeyguardVisibilityChanged(boolean showing) {
             mIsKeyguard = showing;
-            updateStyle();
             updatePosition();
             if (mFODAnimation != null) {
                 mFODAnimation.setAnimationKeyguard(mIsKeyguard);
@@ -346,6 +345,9 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
                     Settings.System.FOD_ANIM),
                     false, this, UserHandle.USER_ALL);
             resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.FOD_RECOGNIZING_ANIMATION),
+                    false, this, UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.SCREEN_BRIGHTNESS),
                     false, this, UserHandle.USER_ALL);
             resolver.registerContentObserver(Settings.Global.getUriFor(
@@ -363,10 +365,13 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         public void onChange(boolean selfChange, Uri uri) {
             if (uri.equals(Settings.System.getUriFor(
                     Settings.System.FOD_ICON))) {
-                updateStyle();
+                updateFodIconStyle();
             } else if (uri.equals(Settings.System.getUriFor(
                     Settings.System.FOD_ANIM))) {
-                updateStyle();
+                updateFodAnimationStyle();
+            } else if (uri.equals(Settings.System.getUriFor(
+                    Settings.System.FOD_RECOGNIZING_ANIMATION))) {
+                updateFodAnimationStyle();
             } else if (uri.equals(Settings.System.getUriFor(
                     Settings.System.SCREEN_BRIGHTNESS))) {
                 updateIconDim();
@@ -383,7 +388,8 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         }
 
         public void update() {
-            updateStyle();
+            updateFodIconStyle();
+            updateFodAnimationStyle();
             updateIconDim();
             setFODPressedState();
             useWallpaperColor();
@@ -475,7 +481,6 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
 
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
-        updateStyle();
         updatePosition();
     }
 
@@ -649,11 +654,14 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         setAlpha(mIsDreaming ? 0.5f : 1.0f);
     }
 
-    private void updateStyle() {
-        mIsRecognizingAnimEnabled = Settings.System.getInt(mContext.getContentResolver(),
-                Settings.System.FOD_RECOGNIZING_ANIMATION, 0) != 0;
+    private void updateFodIconStyle() {
         mSelectedIcon = Settings.System.getInt(mContext.getContentResolver(),
                 Settings.System.FOD_ICON, 0);
+    }
+
+    private void updateFodAnimationStyle() {
+        mIsRecognizingAnimEnabled = Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.FOD_RECOGNIZING_ANIMATION, 0) != 0;
         if (mFODAnimation != null) {
             mFODAnimation.update();
         }
