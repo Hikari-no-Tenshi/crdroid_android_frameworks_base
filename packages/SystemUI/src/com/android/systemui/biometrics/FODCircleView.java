@@ -69,6 +69,8 @@ import com.android.systemui.statusbar.policy.ConfigurationController.Configurati
 import vendor.lineage.biometrics.fingerprint.inscreen.V1_0.IFingerprintInscreen;
 import vendor.lineage.biometrics.fingerprint.inscreen.V1_0.IFingerprintInscreenCallback;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -149,6 +151,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
 
     private int mSelectedIcon;
     private TypedArray mIconStyles;
+    private Map<Integer, Bitmap> mBitMapCache;
 
     private IFingerprintInscreenCallback mFingerprintInscreenCallback =
             new IFingerprintInscreenCallback.Stub() {
@@ -240,6 +243,8 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
 
     public FODCircleView(Context context) {
         super(context);
+
+        mBitMapCache = new HashMap<Integer, Bitmap>();
 
         mDaemon = getFingerprintInScreenDaemon();
         if (mDaemon == null) {
@@ -592,8 +597,12 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
                     if (iconcolor != wallColor) {
                         iconcolor = wallColor;
                     }
-                    mIconBitmap = BitmapFactory.decodeResource(getResources(),
-                            mIconStyles.getResourceId(mSelectedIcon, -1)).copy(Bitmap.Config.ARGB_8888, true);
+                    Bitmap iconBitmap = mBitMapCache.get(mIconStyles.getResourceId(mSelectedIcon, -1));
+                    mIconBitmap = iconBitmap.copy(iconBitmap.getConfig(), true);
+                    if (mIconBitmap == null) {
+                        mIconBitmap = BitmapFactory.decodeResource(getResources(),
+                                mIconStyles.getResourceId(mSelectedIcon, -1)).copy(Bitmap.Config.ARGB_8888, true);
+                    }
                     mPaintIcon.setColorFilter(new PorterDuffColorFilter(lighter(iconcolor, 3),
                             PorterDuff.Mode.SRC_IN));
                     Canvas canvas = new Canvas(mIconBitmap);
@@ -661,6 +670,10 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
     private void updateFodIconStyle() {
         mSelectedIcon = Settings.System.getInt(mContext.getContentResolver(),
                 Settings.System.FOD_ICON, 0);
+        Bitmap iconBitmap = BitmapFactory.decodeResource(getResources(),
+                mIconStyles.getResourceId(mSelectedIcon, -1)).copy(Bitmap.Config.ARGB_8888, true);
+        mBitMapCache.clear();
+        mBitMapCache.put(mIconStyles.getResourceId(mSelectedIcon, -1), iconBitmap);
     }
 
     private void updateFodAnimationStyle() {
