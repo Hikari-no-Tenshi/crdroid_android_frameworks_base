@@ -122,6 +122,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
 
     private boolean mIsBouncer;
     private boolean mIsDreaming;
+    private boolean mIsPulsing;
     private boolean mIsKeyguard;
     private boolean mIsCircleShowing;
     private boolean mIsShowing;
@@ -176,6 +177,16 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
                 mBurnInProtectionTimer.schedule(new BurnInProtectionTask(), 0, 60 * 1000);
             } else if (mBurnInProtectionTimer != null) {
                 mBurnInProtectionTimer.cancel();
+                updatePosition();
+            }
+        }
+
+        @Override
+        public void onPulsing(boolean pulsing) {
+            super.onPulsing(pulsing);
+            mIsPulsing = pulsing;
+
+            if (mIsPulsing) {
                 updatePosition();
             }
         }
@@ -714,7 +725,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
             mFODAnimation.updateParams(mParams.y);
         }
 
-        if (mIsDreaming && !mIsCircleShowing) {
+        if (mIsDreaming && !mIsPulsing && !mIsCircleShowing) {
             mParams.y += mDreamingOffsetY;
         }
 
