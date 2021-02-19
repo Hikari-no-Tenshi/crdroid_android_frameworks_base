@@ -106,6 +106,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
     private final Paint mPaintIcon = new Paint();
     private final WindowManager.LayoutParams mParams = new WindowManager.LayoutParams();
     private final WindowManager.LayoutParams mPressedParams = new WindowManager.LayoutParams();
+    private final WindowManager.LayoutParams mIconParams = new WindowManager.LayoutParams();
     private final WindowManager mWindowManager;
 
     private IFingerprintInscreen mFingerprintInscreenDaemon;
@@ -133,6 +134,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
 
     private Handler mHandler;
 
+    private final ImageView mIconView;
     private final ImageView mPressedView;
 
     private LockPatternUtils mLockPatternUtils;
@@ -296,13 +298,27 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
                 WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED;
         mParams.gravity = Gravity.TOP | Gravity.LEFT;
 
+        mIconParams.copyFrom(mParams);
+        mIconParams.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+
         mPressedParams.copyFrom(mParams);
         mPressedParams.type = WindowManager.LayoutParams.TYPE_SYSTEM_FINGERPRINT_HIGH_LIGHT;
         mPressedParams.flags |= WindowManager.LayoutParams.FLAG_DIM_BEHIND;
         mPressedParams.dimAmount = 0.0f;
 
         mParams.setTitle("Fingerprint on display");
+        mIconParams.setTitle("Fingerprint on display.icon");
         mPressedParams.setTitle("Fingerprint on display.touched");
+
+        mIconView = new ImageView(context) {
+            @Override
+            protected void onDraw(Canvas canvas) {
+                if (!mIsCircleShowing && mSelectedIcon == 0) {
+                    canvas.drawCircle(mSize / 2, mSize / 2, mSize / 2.0f, mPaintFingerprintBackground);
+                }
+                super.onDraw(canvas);
+            }
+        };
 
         mPressedView = new ImageView(context)  {
             @Override
@@ -315,6 +331,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         };
 
         mWindowManager.addView(this, mParams);
+        mWindowManager.addView(mIconView, mIconParams);
 
         mCustomSettingsObserver.observe();
         mCustomSettingsObserver.update();
@@ -442,14 +459,6 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         }
     }
 
-    @Override
-    protected void onDraw(Canvas canvas) {
-        if (!mIsCircleShowing && mSelectedIcon == 0) {
-            canvas.drawCircle(mSize / 2, mSize / 2, mSize / 2.0f, mPaintFingerprintBackground);
-        }
-        super.onDraw(canvas);
-    }
-
     private void setFODPressedState() {
         mPressedState = Settings.System.getInt(mContext.getContentResolver(),
                 Settings.System.FOD_PRESSED_STATE, 0);
@@ -564,14 +573,10 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         }
 
         updatePosition();
-        invalidate();
     }
 
     public void hideCircle() {
         mIsCircleShowing = false;
-
-        setFODIcon();
-        invalidate();
 
         ThreadUtils.postOnBackgroundThread(() -> {
             dispatchRelease();
@@ -589,33 +594,29 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
     private void useWallpaperColor() {
         mUseWallpaperColor = Settings.System.getInt(mContext.getContentResolver(),
                 Settings.System.FOD_ICON_WALLPAPER_COLOR, 0) == 1;
+        if (!mUseWallpaperColor) {
+            mIconView.setColorFilter(null);
+            mIconView.invalidate();
+        }
     }
 
-    private void setFODIcon() {
-        if (mUseWallpaperColor) {
-            try {
-                WallpaperManager wallpaperManager = WallpaperManager.getInstance(mContext);
-                Drawable wallpaperDrawable = wallpaperManager.getDrawable();
-                Bitmap bitmap = ((BitmapDrawable)wallpaperDrawable).getBitmap();
-                if (bitmap != null) {
-                    Palette p = Palette.from(bitmap).generate();
-                    int wallColor = p.getDominantColor(iconcolor);
-                    if (iconcolor != wallColor) {
-                        iconcolor = wallColor;
-                    }
-                    mIconBitmap = BitmapFactory.decodeResource(getResources(),
-                            mIconStyles.getResourceId(mSelectedIcon, -1)).copy(Bitmap.Config.ARGB_8888, true);
-                    mPaintIcon.setColorFilter(new PorterDuffColorFilter(lighter(iconcolor, 3),
-                            PorterDuff.Mode.SRC_IN));
-                    Canvas canvas = new Canvas(mIconBitmap);
-                    canvas.drawBitmap(mIconBitmap, 0, 0, mPaintIcon);
-                    setImageBitmap(mIconBitmap);
+    private void setFODIconColor() {
+        try {
+            WallpaperManager wallpaperManager = WallpaperManager.getInstance(mContext);
+            Drawable wallpaperDrawable = wallpaperManager.getDrawable();
+            Bitmap bitmap = ((BitmapDrawable)wallpaperDrawable).getBitmap();
+            if (bitmap != null) {
+                Palette p = Palette.from(bitmap).generate();
+                int wallColor = p.getDominantColor(iconcolor);
+                if (iconcolor != wallColor) {
+                    iconcolor = wallColor;
                 }
-            } catch (Exception e) {
-                // Nothing to do
+                mIconView.setColorFilter(new PorterDuffColorFilter(lighter(iconcolor, 3),
+                        PorterDuff.Mode.SRC_IN));
+                mIconView.invalidate();
             }
-        } else {
-            setImageResource(mIconStyles.getResourceId(mSelectedIcon, -1));
+        } catch (Exception e) {
+            // Nothing to do
         }
     }
 
@@ -653,11 +654,16 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         ThreadUtils.postOnBackgroundThread(() -> {
             dispatchShow();
         });
+        if (mUseWallpaperColor) {
+            setFODIconColor();
+        }
         setVisibility(View.VISIBLE);
+        mIconView.setVisibility(View.VISIBLE);
     }
 
     public void hide() {
         mIsShowing = false;
+        mIconView.setVisibility(View.GONE);
         setVisibility(View.GONE);
         hideCircle();
         ThreadUtils.postOnBackgroundThread(() -> {
@@ -666,12 +672,14 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
     }
 
     private void updateAlpha() {
-        setAlpha(mIsDreaming ? 0.5f : 1.0f);
+        mIconView.setAlpha(mIsDreaming ? 0.5f : 1.0f);
     }
 
     private void updateFodIconStyle() {
         mSelectedIcon = Settings.System.getInt(mContext.getContentResolver(),
                 Settings.System.FOD_ICON, 0);
+        mIconView.setImageResource(mIconStyles.getResourceId(mSelectedIcon, -1));
+        mIconView.invalidate();
     }
 
     private void updateFodAnimationStyle() {
@@ -729,7 +737,12 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
             mParams.y += mDreamingOffsetY;
         }
 
+        mIconParams.x = mParams.x;
+        mIconParams.y = mParams.y;
+
         mWindowManager.updateViewLayout(this, mParams);
+
+        mWindowManager.updateViewLayout(mIconView, mIconParams);
 
         if (mPressedView.getParent() != null) {
             mWindowManager.updateViewLayout(mPressedView, mPressedParams);
