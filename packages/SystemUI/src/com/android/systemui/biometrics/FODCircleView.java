@@ -333,6 +333,8 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         mWindowManager.addView(this, mParams);
         mWindowManager.addView(mIconView, mIconParams);
 
+        mFODAnimation = new FODAnimation(context, mPositionX, mPositionY);
+
         mCustomSettingsObserver.observe();
         mCustomSettingsObserver.update();
         updatePosition();
@@ -352,8 +354,6 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         mDefaultScreenBrightness = mPowerManager.getDefaultScreenBrightnessSetting();
         mScreenBrightnessDimConfig = res.getInteger(
                 com.android.internal.R.integer.config_screenBrightnessDim);
-
-        mFODAnimation = new FODAnimation(context, mPositionX, mPositionY);
     }
 
     private CustomSettingsObserver mCustomSettingsObserver = new CustomSettingsObserver(mHandler);
@@ -495,7 +495,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         }
 
         if (mIsRecognizingAnimEnabled) {
-            mHandler.post(() -> mFODAnimation.hideFODanimation());
+            mFODAnimation.hideFODanimation();
         }
         return false;
     }
@@ -569,7 +569,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         });
 
         if (mIsRecognizingAnimEnabled) {
-            mHandler.post(() -> mFODAnimation.showFODanimation());
+            mFODAnimation.showFODanimation();
         }
 
         updatePosition();
@@ -583,7 +583,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         });
 
         if (mIsRecognizingAnimEnabled) {
-            mHandler.post(() -> mFODAnimation.hideFODanimation());
+            mFODAnimation.hideFODanimation();
         }
 
         setDim(false);
@@ -686,7 +686,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         mIsRecognizingAnimEnabled = Settings.System.getInt(mContext.getContentResolver(),
                 Settings.System.FOD_RECOGNIZING_ANIMATION, 0) != 0;
         if (mFODAnimation != null) {
-            mFODAnimation.update();
+            mHandler.post(() -> mFODAnimation.update());
         }
     }
 

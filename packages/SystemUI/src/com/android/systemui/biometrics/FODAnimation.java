@@ -37,14 +37,10 @@ public class FODAnimation extends ImageView {
     private Context mContext;
     private int mAnimationSize;
     private int mAnimationOffset;
-    private int mAnimationPositionY;
     private AnimationDrawable recognizingAnim;
     private WindowManager mWindowManager;
     private boolean mIsKeyguard;
-
-    private int mSelectedAnim;
-    private TypedArray mAnimationStyles;
-    private int mAnimationStylesCount;
+    private final Resources mResources;
 
     public FODAnimation(Context context, int mPositionX, int mPositionY) {
         super(context);
@@ -52,32 +48,33 @@ public class FODAnimation extends ImageView {
         mContext = context;
         mWindowManager = mContext.getSystemService(WindowManager.class);
 
-        mAnimationSize = mContext.getResources().getDimensionPixelSize(R.dimen.fod_animation_size);
-        mAnimationOffset = mContext.getResources().getDimensionPixelSize(R.dimen.fod_animation_offset);
+        mResources = mContext.getResources();
+        mAnimationSize = mResources.getDimensionPixelSize(R.dimen.fod_animation_size);
+        mAnimationOffset = mResources.getDimensionPixelSize(R.dimen.fod_animation_offset);
         mAnimParams.height = mAnimationSize;
         mAnimParams.width = mAnimationSize;
 
         mAnimParams.format = PixelFormat.TRANSLUCENT;
         mAnimParams.type = WindowManager.LayoutParams.TYPE_VOLUME_OVERLAY; // it must be behind FOD icon
         mAnimParams.flags =  WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
+                | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS;
         mAnimParams.gravity = Gravity.TOP | Gravity.CENTER;
         mAnimParams.y = mPositionY - (mAnimationSize / 2) + mAnimationOffset;
 
         setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        update();
         setVisibility(View.GONE);
 
         mWindowManager.addView(this, mAnimParams);
     }
 
     public void update() {
-        mAnimationStyles = mContext.getResources().obtainTypedArray(R.array.fod_animation_resources);
-        mAnimationStylesCount = mAnimationStyles.length();
-        if (mAnimationStylesCount > 0) {
-            mSelectedAnim = Settings.System.getInt(mContext.getContentResolver(),
+        final TypedArray animationStyles = mResources.obtainTypedArray(R.array.fod_animation_resources);
+        final int animationStylesCount = animationStyles.length();
+        if (animationStylesCount > 0) {
+            final int selectedAnim = Settings.System.getInt(mContext.getContentResolver(),
                     Settings.System.FOD_ANIM, 0);
-            setBackgroundResource(mAnimationStyles.getResourceId(mSelectedAnim, -1));
+            setBackgroundResource(animationStyles.getResourceId(selectedAnim, -1));
         } else {
             setBackgroundResource(R.drawable.fod_miui_pulse_recognizing_white_anim);
         }
