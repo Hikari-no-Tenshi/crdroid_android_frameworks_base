@@ -1518,11 +1518,7 @@ public class FaceService extends BiometricServiceBase {
                 try {
                     Map map = mAuthenticatorIds;
                     Integer valueOf = Integer.valueOf(mCurrentUserId);
-                    long authId = 0;
-                    if (hasEnrolledBiometrics(mCurrentUserId)) {
-                        authId = (long) service.getAuthenticatorId();
-                    }
-                    map.put(valueOf, Long.valueOf(authId));
+                    map.put(valueOf, (long) 1);
                 } catch (Exception e) {
                     Slog.e(TAG, "getAuthenticatorId failed", e);
                 }
