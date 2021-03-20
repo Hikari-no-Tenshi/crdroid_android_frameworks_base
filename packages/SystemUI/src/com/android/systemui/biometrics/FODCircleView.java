@@ -46,6 +46,7 @@ import android.os.Looper;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.provider.Settings;
+import android.util.Spline;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -74,26 +75,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class FODCircleView extends ImageView implements ConfigurationListener {
-    private final int[][] BRIGHTNESS_ALPHA_ARRAY = {
-        new int[]{0, 255},
-        new int[]{1, 224},
-        new int[]{2, 213},
-        new int[]{3, 211},
-        new int[]{4, 208},
-        new int[]{5, 206},
-        new int[]{6, 203},
-        new int[]{8, 200},
-        new int[]{10, 196},
-        new int[]{15, 186},
-        new int[]{20, 176},
-        new int[]{30, 160},
-        new int[]{45, 139},
-        new int[]{70, 114},
-        new int[]{100, 90},
-        new int[]{150, 56},
-        new int[]{227, 14},
-        new int[]{255, 0}
-    };
     private final int mPositionX;
     private final int mPositionY;
     private final int mSize;
@@ -120,6 +101,7 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
     private int mDefaultScreenBrightness;
     private int mScreenBrightnessDimConfig;
     private int mPressedState;
+    private Spline mFODiconBrightnessToDimAmountSpline;
 
     private boolean mIsBouncer;
     private boolean mIsDreaming;
@@ -277,6 +259,13 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         mPaintFingerprintBackground.setColor(res.getColor(R.color.config_fodColorBackground));
         mPaintFingerprintBackground.setAntiAlias(true);
 
+        float[] icon_dim_amount =
+                getFloatArray(res.obtainTypedArray(R.array.config_FODiconDimAmount));
+        float[] display_brightness =
+                getFloatArray(res.obtainTypedArray(R.array.config_FODiconDisplayBrightness));
+        mFODiconBrightnessToDimAmountSpline =
+                Spline.createSpline(display_brightness, icon_dim_amount);
+
         mTargetUsesInKernelDimming = res.getBoolean(com.android.internal.R.bool.config_targetUsesInKernelDimming);
 
         mWindowManager = context.getSystemService(WindowManager.class);
@@ -423,30 +412,9 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         }
     }
 
-    private int interpolate(int i, int i2, int i3, int i4, int i5) {
-        int i6 = i5 - i4;
-        int i7 = i - i2;
-        int i8 = ((i6 * 2) * i7) / (i3 - i2);
-        int i9 = i8 / 2;
-        int i10 = i2 - i3;
-        return i4 + i9 + (i8 % 2) + ((i10 == 0 || i6 == 0) ? 0 : (((i7 * 2) * (i - i3)) / i6) / i10);
-    }
-
-    private int getDimAlpha() {
-        int length = BRIGHTNESS_ALPHA_ARRAY.length;
-        int i = 0;
-        while (i < length && BRIGHTNESS_ALPHA_ARRAY[i][0] < (mIsScreenDimming ? mScreenBrightnessDimConfig : mCurrentBrightness)) {
-            i++;
-        }
-        if (i == 0) {
-            return BRIGHTNESS_ALPHA_ARRAY[0][1];
-        }
-        if (i == length) {
-            return BRIGHTNESS_ALPHA_ARRAY[length - 1][1];
-        }
-        int[][] iArr = BRIGHTNESS_ALPHA_ARRAY;
-        int i2 = i - 1;
-        return interpolate(mIsScreenDimming ? mScreenBrightnessDimConfig : mCurrentBrightness, iArr[i2][0], iArr[i][0], iArr[i2][1], iArr[i][1]);
+    private float getDimAlpha() {
+        return mFODiconBrightnessToDimAmountSpline.interpolate(
+                mIsScreenDimming ? mScreenBrightnessDimConfig : mCurrentBrightness);
     }
 
     public void updateIconDim() {
@@ -455,7 +423,8 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
         mIsScreenDimming = Settings.Global.getInt(mContext.getContentResolver(),
                 Settings.Global.SCREEN_IS_DIMMING, 0) == 1;
         if (mTargetUsesInKernelDimming) {
-            mHandler.post(() -> setColorFilter(Color.argb(getDimAlpha(), 0, 0, 0), PorterDuff.Mode.SRC_ATOP));
+            int icon_dim_mount = Math.round(getDimAlpha());
+            mHandler.post(() -> setColorFilter(Color.argb(icon_dim_mount, 0, 0, 0), PorterDuff.Mode.SRC_ATOP));
         }
     }
 
@@ -826,5 +795,15 @@ public class FODCircleView extends ImageView implements ConfigurationListener {
             mCutoutMasked = cutoutMasked;
             updatePosition();
         }
+    }
+
+    private static float[] getFloatArray(TypedArray array) {
+        int length = array.length();
+        float[] floatArray = new float[length];
+        for (int i = 0; i < length; i++) {
+            floatArray[i] = array.getFloat(i, Float.NaN);
+        }
+        array.recycle();
+        return floatArray;
     }
 }
