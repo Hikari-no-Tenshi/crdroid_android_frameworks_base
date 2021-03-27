@@ -102,10 +102,10 @@ public class FODAnimation extends ImageView {
         if (mShowing) {
             mShowing = false;
             if (recognizingAnim != null) {
-                clearAnimation();
                 recognizingAnim.stop();
                 recognizingAnim.selectDrawable(0);
             }
+            clearAnimation();
             setVisibility(View.GONE);
         }
     }
