@@ -201,4 +201,14 @@
 
   <!-- Pocket Service -->
   <java-symbol type="string" name="config_pocketJudgeVendorSensorName" />
+
+  <!-- OnePlus Brightness -->
+  <java-symbol type="bool" name="config_OnePlusBrightness" />
+  <java-symbol type="array" name="config_screenBrightnessNits_1023" />
+  <java-symbol type="array" name="config_screenBrightnessBacklight_1023" />
+  <java-symbol type="integer" name="config_screenBrightnessSettingMaximum_1023" />
+  <java-symbol type="bool" name="config_OnePlusAutoHBM" />
+  <java-symbol type="array" name="config_HBMBrightnessBacklight" />
+  <java-symbol type="array" name="config_HBMautoBrightnessLevels" />
+  <java-symbol type="integer" name="config_HBMBrightnessThreshold" />
 </resources>

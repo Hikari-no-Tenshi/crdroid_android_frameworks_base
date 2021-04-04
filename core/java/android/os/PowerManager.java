@@ -27,6 +27,7 @@ import android.annotation.SystemService;
 import android.annotation.TestApi;
 import android.annotation.UnsupportedAppUsage;
 import android.content.Context;
+import android.content.res.Resources;
 import android.service.dreams.Sandman;
 import android.util.ArrayMap;
 import android.util.Log;
@@ -232,7 +233,10 @@ public final class PowerManager {
      * @hide
      */
     @UnsupportedAppUsage
-    public static final int BRIGHTNESS_ON = 255;
+    public static final int BRIGHTNESS_ON = getMaxBrightness();
+
+    private static final int MAX_BRIGHTNESS_LEVEL_1023 = 1023;
+    private static final int MAX_BRIGHTNESS_LEVEL_255 = 255;
 
     /**
      * Brightness value for fully off.
@@ -831,6 +835,12 @@ public final class PowerManager {
      */
     @UnsupportedAppUsage
     public int getMaximumScreenBrightnessSetting() {
+        final boolean useOnePlusBrightness = mContext.getResources().getBoolean(
+                com.android.internal.R.bool.config_OnePlusBrightness);
+        if (useOnePlusBrightness) {
+            return mContext.getResources().getInteger(
+                    com.android.internal.R.integer.config_screenBrightnessSettingMaximum_1023);
+        }
         return mContext.getResources().getInteger(
                 com.android.internal.R.integer.config_screenBrightnessSettingMaximum);
     }
@@ -2411,5 +2421,14 @@ public final class PowerManager {
                 }
             };
         }
+    }
+
+    private static int getMaxBrightness() {
+        final boolean useOnePlusBrightness = Resources.getSystem().getBoolean(
+                com.android.internal.R.bool.config_OnePlusBrightness);
+        if (useOnePlusBrightness) {
+            return MAX_BRIGHTNESS_LEVEL_1023;
+        }
+        return MAX_BRIGHTNESS_LEVEL_255;
     }
 }

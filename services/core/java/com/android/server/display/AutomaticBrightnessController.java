@@ -222,6 +222,8 @@ class AutomaticBrightnessController {
 
     private final Injector mInjector;
 
+    public boolean mHBM_State = false;
+
     private class CustomSettingsObserver extends ContentObserver {
         CustomSettingsObserver(Handler handler) {
             super(handler);
@@ -435,6 +437,11 @@ class AutomaticBrightnessController {
         mShortTermModelAnchor = mAmbientLux;
         if (mLoggingEnabled) {
             Slog.d(TAG, "ShortTermModel: anchor=" + mShortTermModelAnchor);
+        }
+        final boolean useOnePlusAutoHBM = mContext.getResources().getBoolean(
+                com.android.internal.R.bool.config_OnePlusAutoHBM);
+        if (useOnePlusAutoHBM && mHBM_State) {
+            mHBM_State = false;
         }
         return true;
     }
@@ -780,8 +787,29 @@ class AutomaticBrightnessController {
     }
 
     private void updateAutoBrightness(boolean sendUpdate, boolean isManuallySet) {
+        boolean exitHBMMode = false;
         if (!mAmbientLuxValid) {
             return;
+        }
+
+        final boolean useOnePlusAutoHBM = mContext.getResources().getBoolean(
+                com.android.internal.R.bool.config_OnePlusAutoHBM);
+        if (useOnePlusAutoHBM) {
+            final float HBMBrightnessThreshold = (float) mContext.getResources().getInteger(
+                    com.android.internal.R.integer.config_HBMBrightnessThreshold);
+            if (mAmbientLux > HBMBrightnessThreshold) {
+                int hbm_brightness = Math.round(mBrightnessMapper.getHBMBrightness(mAmbientLux));
+                Slog.d(TAG, "hbm_brightness=" + hbm_brightness);
+                mHBM_State = true;
+                mScreenDarkeningThreshold = (float) PowerManager.BRIGHTNESS_ON;
+                mScreenBrighteningThreshold = (float) PowerManager.BRIGHTNESS_ON;
+                mCallbacks.animateHBMBrightness(hbm_brightness, true);
+                return;
+            }
+            if (mHBM_State) {
+                exitHBMMode = true;
+            }
+            mHBM_State = false;
         }
 
         float value = mBrightnessMapper.getBrightness(mAmbientLux, mForegroundAppPackageName,
@@ -804,7 +832,7 @@ class AutomaticBrightnessController {
             return;
         }
 
-        if (mScreenAutoBrightness != newScreenAutoBrightness) {
+        if (mScreenAutoBrightness != newScreenAutoBrightness || exitHBMMode) {
             if (mLoggingEnabled) {
                 Slog.d(TAG, "updateAutoBrightness: " +
                         "mScreenAutoBrightness=" + mScreenAutoBrightness + ", " +
@@ -1008,6 +1036,7 @@ class AutomaticBrightnessController {
     /** Callbacks to request updates to the display's power state. */
     interface Callbacks {
         void updateBrightness();
+        void animateHBMBrightness(int target, boolean persist);
     }
 
     /**

@@ -171,6 +171,8 @@ public final class DisplayManagerService extends SystemService {
     private static final int MSG_UPDATE_VIEWPORT = 5;
     private static final int MSG_LOAD_BRIGHTNESS_CONFIGURATION = 6;
 
+    private static final int HBM_MAX_BRIGHTNESS = 1023;
+
     private final Context mContext;
     private final DisplayManagerHandler mHandler;
     private final Handler mUiHandler;
@@ -533,7 +535,13 @@ public final class DisplayManagerService extends SystemService {
         } else if (brightness < 0) {
             brightness = PowerManager.BRIGHTNESS_DEFAULT;
         } else if (brightness > PowerManager.BRIGHTNESS_ON) {
-            brightness = PowerManager.BRIGHTNESS_ON;
+            final boolean useOnePlusAutoHBM = mContext.getResources().getBoolean(
+                    com.android.internal.R.bool.config_OnePlusAutoHBM);
+            if (!useOnePlusAutoHBM) {
+                brightness = PowerManager.BRIGHTNESS_ON;
+            } else if (brightness > PowerManager.BRIGHTNESS_ON + HBM_MAX_BRIGHTNESS) {
+                brightness = PowerManager.BRIGHTNESS_ON + HBM_MAX_BRIGHTNESS;
+            }
         }
 
         synchronized (mTempDisplayStateWorkQueue) {

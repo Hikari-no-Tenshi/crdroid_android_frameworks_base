@@ -54,6 +54,24 @@ public abstract class BrightnessMappingStrategy {
 
     @Nullable
     public static BrightnessMappingStrategy create(Resources resources) {
+        int[] backlightRange;
+        float[] nitsRange;
+        int maximumBacklight;
+        float[] HBMLuxLevels;
+        float[] HBMBrightnessBacklight;
+        final boolean useOnePlusBrightness = resources.getBoolean(
+                com.android.internal.R.bool.config_OnePlusBrightness);
+        final boolean useOnePlusAutoHBM = resources.getBoolean(
+                com.android.internal.R.bool.config_OnePlusAutoHBM);
+        if (useOnePlusAutoHBM) {
+            HBMBrightnessBacklight = getFloatArray(resources.obtainTypedArray(
+                    com.android.internal.R.array.config_HBMBrightnessBacklight));
+            HBMLuxLevels = getFloatArray(resources.obtainTypedArray(
+                    com.android.internal.R.array.config_HBMautoBrightnessLevels));
+        } else {
+            HBMBrightnessBacklight = null;
+            HBMLuxLevels = null;
+        }
         float[] luxLevels = getLuxLevels(resources.getIntArray(
                 com.android.internal.R.array.config_autoBrightnessLevels));
         int[] brightnessLevelsBacklight = resources.getIntArray(
@@ -64,17 +82,29 @@ public abstract class BrightnessMappingStrategy {
                 com.android.internal.R.fraction.config_autoBrightnessAdjustmentMaxGamma,
                 1, 1);
 
-        float[] nitsRange = getFloatArray(resources.obtainTypedArray(
-                com.android.internal.R.array.config_screenBrightnessNits));
-        int[] backlightRange = resources.getIntArray(
-                com.android.internal.R.array.config_screenBrightnessBacklight);
+        if (useOnePlusBrightness) {
+            nitsRange = getFloatArray(resources.obtainTypedArray(
+                    com.android.internal.R.array.config_screenBrightnessNits_1023));
+            backlightRange = resources.getIntArray(
+                    com.android.internal.R.array.config_screenBrightnessBacklight_1023);
+        } else {
+            nitsRange = getFloatArray(resources.obtainTypedArray(
+                    com.android.internal.R.array.config_screenBrightnessNits));
+            backlightRange = resources.getIntArray(
+                    com.android.internal.R.array.config_screenBrightnessBacklight);
+        }
 
         if (isValidMapping(nitsRange, backlightRange)
                 && isValidMapping(luxLevels, brightnessLevelsNits)) {
             int minimumBacklight = resources.getInteger(
                     com.android.internal.R.integer.config_screenBrightnessSettingMinimum);
-            int maximumBacklight = resources.getInteger(
-                    com.android.internal.R.integer.config_screenBrightnessSettingMaximum);
+            if (useOnePlusBrightness) {
+                maximumBacklight = resources.getInteger(
+                        com.android.internal.R.integer.config_screenBrightnessSettingMaximum_1023);
+            } else {
+                maximumBacklight = resources.getInteger(
+                        com.android.internal.R.integer.config_screenBrightnessSettingMaximum);
+            }
             if (backlightRange[0] > minimumBacklight
                     || backlightRange[backlightRange.length - 1] < maximumBacklight) {
                 Slog.w(TAG, "Screen brightness mapping does not cover whole range of available " +
@@ -82,6 +112,10 @@ public abstract class BrightnessMappingStrategy {
             }
             BrightnessConfiguration.Builder builder = new BrightnessConfiguration.Builder(
                     luxLevels, brightnessLevelsNits);
+            if (useOnePlusAutoHBM) {
+                return new PhysicalMappingStrategyModified(builder.build(), nitsRange, backlightRange,
+                        autoBrightnessAdjustmentMaxGamma, HBMLuxLevels, HBMBrightnessBacklight);
+            }
             return new PhysicalMappingStrategy(builder.build(), nitsRange, backlightRange,
                     autoBrightnessAdjustmentMaxGamma);
         } else if (isValidMapping(luxLevels, brightnessLevelsBacklight)) {
@@ -203,6 +237,9 @@ public abstract class BrightnessMappingStrategy {
     public abstract float getBrightness(float lux, String packageName,
             @ApplicationInfo.Category int category);
 
+    public abstract float getHBMBrightness(float lux, String packageName,
+            @ApplicationInfo.Category int category);
+
     /**
      * Returns the desired brightness of the display based on the current ambient lux.
      *
@@ -215,6 +252,10 @@ public abstract class BrightnessMappingStrategy {
      */
     public float getBrightness(float lux) {
         return getBrightness(lux, null /* packageName */, ApplicationInfo.CATEGORY_UNDEFINED);
+    }
+
+    public float getHBMBrightness(float lux) {
+        return getHBMBrightness(lux, null /* packageName */, ApplicationInfo.CATEGORY_UNDEFINED);
     }
 
     /**
@@ -495,6 +536,12 @@ public abstract class BrightnessMappingStrategy {
         }
 
         @Override
+        public float getHBMBrightness(float lux, String packageName,
+                @ApplicationInfo.Category int category) {
+            return 0.0f;
+        }
+
+        @Override
         public float getAutoBrightnessAdjustment() {
             return mAutoBrightnessAdjustment;
         }
@@ -691,6 +738,12 @@ public abstract class BrightnessMappingStrategy {
         }
 
         @Override
+        public float getHBMBrightness(float lux, String packageName,
+                @ApplicationInfo.Category int category) {
+            return 0.0f;
+        }
+
+        @Override
         public float getAutoBrightnessAdjustment() {
             return mAutoBrightnessAdjustment;
         }
@@ -820,6 +873,23 @@ public abstract class BrightnessMappingStrategy {
                 }
             }
             return brightness;
+        }
+    }
+
+    @VisibleForTesting
+    static class PhysicalMappingStrategyModified extends PhysicalMappingStrategy {
+        private final Spline mHBMLuxToBacklightSpline;
+
+        public PhysicalMappingStrategyModified(BrightnessConfiguration config, float[] nits,
+                int[] backlight, float maxGamma, float[] hbm_lux, float[] hbm_brightness) {
+            super(config, nits, backlight, maxGamma);
+            mHBMLuxToBacklightSpline = Spline.createSpline(hbm_lux, hbm_brightness);
+        }
+
+        @Override
+        public float getHBMBrightness(float lux, String packageName,
+                @ApplicationInfo.Category int category) {
+            return mHBMLuxToBacklightSpline.interpolate(lux);
         }
     }
 }

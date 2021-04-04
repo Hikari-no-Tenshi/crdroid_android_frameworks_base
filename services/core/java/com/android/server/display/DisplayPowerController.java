@@ -426,8 +426,14 @@ final class DisplayPowerController implements AutomaticBrightnessController.Call
 
         Settings.Global.putInt(mContext.getContentResolver(), Settings.Global.SCREEN_IS_DIMMING, 0);
 
-        mScreenBrightnessRangeMaximum = clampAbsoluteBrightness(resources.getInteger(
-                    com.android.internal.R.integer.config_screenBrightnessSettingMaximum));
+        final boolean useOnePlusBrightness = resources.getBoolean(com.android.internal.R.bool.config_OnePlusBrightness);
+        if (useOnePlusBrightness) {
+            mScreenBrightnessRangeMaximum = clampAbsoluteBrightness(resources.getInteger(
+                        com.android.internal.R.integer.config_screenBrightnessSettingMaximum_1023));
+        } else {
+            mScreenBrightnessRangeMaximum = clampAbsoluteBrightness(resources.getInteger(
+                        com.android.internal.R.integer.config_screenBrightnessSettingMaximum));
+        }
         mScreenBrightnessDefault = clampAbsoluteBrightness(resources.getInteger(
                     com.android.internal.R.integer.config_screenBrightnessSettingDefault));
 
@@ -953,6 +959,10 @@ final class DisplayPowerController implements AutomaticBrightnessController.Call
                     autoBrightnessAdjustmentChanged, mPowerRequest.policy);
         }
 
+        if (!autoBrightnessEnabled && mAutomaticBrightnessController != null) {
+            mAutomaticBrightnessController.mHBM_State = false;
+        }
+
         // Apply auto-brightness.
         boolean slowChange = false;
         if (brightness < 0) {
@@ -973,7 +983,9 @@ final class DisplayPowerController implements AutomaticBrightnessController.Call
                 // before applying the low power or dim transformations so that the slider
                 // accurately represents the full possible range, even if they range changes what
                 // it means in absolute terms.
-                putScreenBrightnessSetting(brightness);
+                if (mAutomaticBrightnessController != null && !mAutomaticBrightnessController.mHBM_State) {
+                    putScreenBrightnessSetting(brightness);
+                }
                 mAppliedAutoBrightness = true;
                 mBrightnessReasonTemp.setReason(BrightnessReason.REASON_AUTOMATIC);
             } else {
@@ -1186,6 +1198,35 @@ final class DisplayPowerController implements AutomaticBrightnessController.Call
     @Override
     public void updateBrightness() {
         sendUpdatePowerState();
+    }
+
+    @Override
+    public void animateHBMBrightness(int target, boolean persist) {
+        int ramprate = calculateRampRate(mCurrentScreenBrightnessSetting, PowerManager.BRIGHTNESS_ON + target);
+        if (persist) {
+            putScreenBrightnessSetting(PowerManager.BRIGHTNESS_ON);
+        }
+        if (DEBUG) {
+            Slog.d(TAG, "Animating HBM brightness: target=" + (PowerManager.BRIGHTNESS_ON + target) + ", rate=" + ramprate);
+        }
+        int hbmTarget = PowerManager.BRIGHTNESS_ON + target;
+        if (mScreenBrightnessRampAnimator.animateTo(hbmTarget, ramprate)) {
+            Trace.traceCounter(Trace.TRACE_TAG_POWER, "TargetScreenBrightness", hbmTarget);
+            try {
+                mBatteryStats.noteScreenBrightness(hbmTarget);
+            } catch (RemoteException e) {
+                // same process
+            }
+        }
+    }
+
+    private static int calculateRampRate(int lastBrightness, int nowBrightness) {
+        int dValue = Math.abs(nowBrightness - lastBrightness);
+        int rate = (int) ((((float) dValue) * -2.31E-4f * ((float) dValue)) + (((float) dValue) * 0.568623f) + 59.431606f);
+        if (dValue < 30) {
+            return 30;
+        }
+        return rate;
     }
 
     public void setBrightnessConfiguration(BrightnessConfiguration c) {
