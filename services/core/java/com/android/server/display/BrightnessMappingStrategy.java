@@ -54,6 +54,11 @@ public abstract class BrightnessMappingStrategy {
 
     @Nullable
     public static BrightnessMappingStrategy create(Resources resources) {
+        int[] backlightRange;
+        float[] nitsRange;
+        int maximumBacklight;
+        final boolean useOnePlusBrightness = resources.getBoolean(
+                com.android.internal.R.bool.config_OnePlusBrightness);
         float[] luxLevels = getLuxLevels(resources.getIntArray(
                 com.android.internal.R.array.config_autoBrightnessLevels));
         int[] brightnessLevelsBacklight = resources.getIntArray(
@@ -64,17 +69,29 @@ public abstract class BrightnessMappingStrategy {
                 com.android.internal.R.fraction.config_autoBrightnessAdjustmentMaxGamma,
                 1, 1);
 
-        float[] nitsRange = getFloatArray(resources.obtainTypedArray(
-                com.android.internal.R.array.config_screenBrightnessNits));
-        int[] backlightRange = resources.getIntArray(
-                com.android.internal.R.array.config_screenBrightnessBacklight);
+        if (useOnePlusBrightness) {
+            nitsRange = getFloatArray(resources.obtainTypedArray(
+                    com.android.internal.R.array.config_screenBrightnessNits_1023));
+            backlightRange = resources.getIntArray(
+                    com.android.internal.R.array.config_screenBrightnessBacklight_1023);
+        } else {
+            nitsRange = getFloatArray(resources.obtainTypedArray(
+                    com.android.internal.R.array.config_screenBrightnessNits));
+            backlightRange = resources.getIntArray(
+                    com.android.internal.R.array.config_screenBrightnessBacklight);
+        }
 
         if (isValidMapping(nitsRange, backlightRange)
                 && isValidMapping(luxLevels, brightnessLevelsNits)) {
             int minimumBacklight = resources.getInteger(
                     com.android.internal.R.integer.config_screenBrightnessSettingMinimum);
-            int maximumBacklight = resources.getInteger(
-                    com.android.internal.R.integer.config_screenBrightnessSettingMaximum);
+            if (useOnePlusBrightness) {
+                maximumBacklight = resources.getInteger(
+                        com.android.internal.R.integer.config_screenBrightnessSettingMaximum_1023);
+            } else {
+                maximumBacklight = resources.getInteger(
+                        com.android.internal.R.integer.config_screenBrightnessSettingMaximum);
+            }
             if (backlightRange[0] > minimumBacklight
                     || backlightRange[backlightRange.length - 1] < maximumBacklight) {
                 Slog.w(TAG, "Screen brightness mapping does not cover whole range of available " +

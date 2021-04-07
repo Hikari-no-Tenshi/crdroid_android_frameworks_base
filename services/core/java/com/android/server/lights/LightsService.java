@@ -40,6 +40,7 @@ public class LightsService extends SystemService {
         private final IBinder mDisplayToken;
         private final int mSurfaceControlMaximumBrightness;
         private final int mUseScaleBrightness;
+        private final boolean mUseOnePlusBrightness;
 
         private LightImpl(Context context, int id) {
             mId = id;
@@ -58,7 +59,7 @@ public class LightsService extends SystemService {
             }
             mSurfaceControlMaximumBrightness = maximumBrightness;
             mUseScaleBrightness = context.getResources().getInteger(com.android.internal.R.integer.config_useScaleBrightness);
-
+            mUseOnePlusBrightness = context.getResources().getBoolean(com.android.internal.R.bool.config_OnePlusBrightness);
         }
 
         @Override
@@ -93,9 +94,13 @@ public class LightsService extends SystemService {
                             (float) brightness / mSurfaceControlMaximumBrightness);
                 } else {
                    if (mUseScaleBrightness == -1){
-                        int color = brightness & 0x000000ff;
-                        color = 0xff000000 | (color << 16) | (color << 8) | color;
-                        setLightLocked(color, LIGHT_FLASH_NONE, 0, 0, brightnessMode);
+                        if (!mUseOnePlusBrightness) {
+                            int color = brightness & 0x000000ff;
+                            color = 0xff000000 | (color << 16) | (color << 8) | color;
+                            setLightLocked(color, LIGHT_FLASH_NONE, 0, 0, brightnessMode);
+                        } else {
+                            setLightLocked(brightness, LIGHT_FLASH_NONE, 0, 0, brightnessMode);
+                        }
                     }else{
                         setLightLocked(brightness * mUseScaleBrightness / 255, LIGHT_FLASH_NONE, 0, 0, brightnessMode);
                     }

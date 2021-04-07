@@ -144,4 +144,16 @@
 
     <!-- Defines custom OEM sensor for pocket detection. -->
     <string name="config_pocketJudgeVendorSensorName"></string>
+
+    <!-- OnePlus Brightness -->
+    <!-- If this set to true then:
+         - config_screenBrightnessNits_1023 must be defined
+         - config_screenBrightnessBacklight_1023 must be defined
+         - config_screenBrightnessSettingMaximum_1023 must be defined -->
+    <bool name="config_OnePlusBrightness">false</bool>
+    <array name="config_screenBrightnessNits_1023">
+    </array>
+    <integer-array name="config_screenBrightnessBacklight_1023">
+    </integer-array>
+    <integer name="config_screenBrightnessSettingMaximum_1023">0</integer>
 </resources>

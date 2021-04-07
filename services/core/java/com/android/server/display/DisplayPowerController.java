@@ -426,8 +426,14 @@ final class DisplayPowerController implements AutomaticBrightnessController.Call
 
         Settings.Global.putInt(mContext.getContentResolver(), Settings.Global.SCREEN_IS_DIMMING, 0);
 
-        mScreenBrightnessRangeMaximum = clampAbsoluteBrightness(resources.getInteger(
-                    com.android.internal.R.integer.config_screenBrightnessSettingMaximum));
+        final boolean useOnePlusBrightness = resources.getBoolean(com.android.internal.R.bool.config_OnePlusBrightness);
+        if (useOnePlusBrightness) {
+            mScreenBrightnessRangeMaximum = clampAbsoluteBrightness(resources.getInteger(
+                        com.android.internal.R.integer.config_screenBrightnessSettingMaximum_1023));
+        } else {
+            mScreenBrightnessRangeMaximum = clampAbsoluteBrightness(resources.getInteger(
+                        com.android.internal.R.integer.config_screenBrightnessSettingMaximum));
+        }
         mScreenBrightnessDefault = clampAbsoluteBrightness(resources.getInteger(
                     com.android.internal.R.integer.config_screenBrightnessSettingDefault));
 
