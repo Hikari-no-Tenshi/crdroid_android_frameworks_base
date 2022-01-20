@@ -93,6 +93,12 @@ public final class UserHandle implements Parcelable {
     @Deprecated
     public static final @NonNull UserHandle OWNER = new UserHandle(USER_OWNER);
 
+    /** @hide A user id constant to indicate the "parallel" user of the device */
+    public static final int USER_PARALLEL = 999;
+
+    /** @hide A user handle to indicate the "parallel" user of the device */
+    public static final UserHandle PARALLEL = new UserHandle(USER_PARALLEL);
+
     /** @hide A user id constant to indicate the "system" user of the device */
     @UnsupportedAppUsage
     @TestApi
