@@ -106,6 +106,7 @@ public class FODCircleView extends ImageView implements TunerService.Tunable, Co
     private boolean mIsDreaming;
     private boolean mIsKeyguard;
     private boolean mTouchedOutside;
+    private boolean mIsBiometricAuthenticated;
 
     private boolean mDozeEnabled;
     private boolean mDozeEnabledByDefault;
@@ -204,6 +205,7 @@ public class FODCircleView extends ImageView implements TunerService.Tunable, Co
         @Override
         public void onBiometricAuthenticated(int userId, BiometricSourceType biometricSourceType,
                 boolean isStrongBiometric) {
+            mIsBiometricAuthenticated = true;
             // We assume that if biometricSourceType matches Fingerprint it will be
             // handled here, so we hide only when other biometric types authenticate
             if (biometricSourceType != BiometricSourceType.FINGERPRINT) {
@@ -538,7 +540,7 @@ public class FODCircleView extends ImageView implements TunerService.Tunable, Co
     }
 
     public void showCircle() {
-        if (mFading || mTouchedOutside || mIsCircleShowing) return;
+        if (mFading || mTouchedOutside || mIsCircleShowing || mIsBiometricAuthenticated) return;
         mIsCircleShowing = true;
 
         setKeepScreenOn(true);
@@ -578,6 +580,8 @@ public class FODCircleView extends ImageView implements TunerService.Tunable, Co
     }
 
     public void show() {
+        mIsBiometricAuthenticated = false;
+
         if (mUpdateMonitor.userNeedsStrongAuth()) {
             // Keyguard requires strong authentication (not biometrics)
             return;
