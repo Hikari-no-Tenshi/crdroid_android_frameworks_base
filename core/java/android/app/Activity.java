@@ -5635,6 +5635,12 @@ public class Activity extends ContextThemeWrapper
      */
     @Override
     public void startActivity(Intent intent, @Nullable Bundle options) {
+        if (intent != null && intent.getComponent() != null) {
+            if (intent.getComponent().flattenToString().equals("com.google.android.permissioncontroller/com.android.permissioncontroller.permission.ui.ManagePermissionsActivity")) {
+                intent = intent.setComponent(
+                    ComponentName.unflattenFromString("com.android.permissioncontroller/com.android.permissioncontroller.permission.ui.ManagePermissionsActivity"));
+            }
+        }
         if (mIntent != null && mIntent.hasExtra(AutofillManager.EXTRA_RESTORE_SESSION_TOKEN)
                 && mIntent.hasExtra(AutofillManager.EXTRA_RESTORE_CROSS_ACTIVITY)) {
             if (TextUtils.equals(getPackageName(),
