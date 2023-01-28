@@ -116,9 +116,9 @@ public class GlobalActionsImpl implements GlobalActions, CommandQueue.Callbacks 
         // Window initialization
         Window window = d.getWindow();
         window.requestFeature(Window.FEATURE_NO_TITLE);
-        window.getAttributes().systemUiVisibility |= View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
+        window.getAttributes().systemUiVisibility |= View.SYSTEM_UI_FLAG_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
         // Inflate the decor view, so the attributes below are not overwritten by the theme.
         window.getDecorView();
         window.getAttributes().width = ViewGroup.LayoutParams.MATCH_PARENT;
