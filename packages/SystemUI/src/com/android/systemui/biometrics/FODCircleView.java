@@ -376,6 +376,9 @@ public class FODCircleView extends ImageView implements TunerService.Tunable, Co
 
         mWindowManager.addView(this, mParams);
 
+        mSelectedIcon = Dependency.get(TunerService.class).getValue(FOD_ICON, 0);
+        updatePosition();
+
         hide();
 
         mLockPatternUtils = new LockPatternUtils(mContext);
