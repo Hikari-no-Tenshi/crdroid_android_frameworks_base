@@ -76,14 +76,17 @@ public class PixelPropsUtils {
             "com.google.android.MTCL83",
             "com.google.android.UltraCVM",
             "com.google.android.apps.cameralite",
-            "com.google.android.dialer",
-            "com.google.android.euicc",
-            "com.google.ar.core",
-            "com.google.android.youtube",
+            "com.google.android.apps.pixelmigrate",
+            "com.google.android.apps.recorder",
+            "com.google.android.apps.restore",
+            "com.google.android.apps.wearables.maestro.companion",
             "com.google.android.apps.youtube.kids",
             "com.google.android.apps.youtube.music",
-            "com.google.android.apps.recorder",
-            "com.google.android.apps.wearables.maestro.companion"
+            "com.google.android.dialer",
+            "com.google.android.euicc",
+            "com.google.android.setupwizard",
+            "com.google.android.youtube",
+            "com.google.ar.core"
     };
 
     private static final Map<String, Object> propsToChangeROG1;
