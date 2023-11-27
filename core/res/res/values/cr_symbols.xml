@@ -122,4 +122,6 @@
 
   <!-- Alter build parameters for avoiding hardware attestation enforcement -->
   <java-symbol type="array" name="config_spoofBuildGms" />
+
+  <java-symbol type="integer" name="config_screenBrightnessPulse" />
 </resources>
