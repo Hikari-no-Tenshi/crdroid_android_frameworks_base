@@ -62,6 +62,7 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Set;
 
 import javax.crypto.SecretKey;
@@ -113,6 +114,20 @@ public class AndroidKeyStoreSpi extends KeyStoreSpi {
         return key;
     }
 
+    private static int indexOf(byte[] array) {
+        final byte[] PATTERN = {48, 74, 4, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 10, 1, 2};
+        outer:
+        for (int i = 0; i < array.length - PATTERN.length + 1; i++) {
+            for (int j = 0; j < PATTERN.length; j++) {
+                if (array[i + j] != PATTERN[j]) {
+                    continue outer;
+                }
+            }
+            return i;
+        }
+        return -1;
+    }
+
     @Override
     public Certificate[] engineGetCertificateChain(String alias) {
         PixelPropsUtils.onEngineGetCertificateChain();
@@ -126,7 +141,22 @@ public class AndroidKeyStoreSpi extends KeyStoreSpi {
             return null;
         }
 
-        final Certificate[] caList;
+        X509Certificate modLeaf = leaf;
+        try {
+            byte[] bytes = leaf.getEncoded();
+            if (bytes != null && bytes.length > 0) {
+                int index = indexOf(bytes);
+                if (index != -1) {
+                    bytes[index + 38] = 1;
+                    bytes[index + 41] = 0;
+                    CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+                    X509Certificate modCert = (X509Certificate) certFactory.generateCertificate(new ByteArrayInputStream(bytes));
+                    modLeaf = modCert;
+                }
+            }
+        } catch (CertificateException e) {
+            return null;
+        }
 
         // Suppress the key not found warning for this call. It seems that this error is exclusively
         // being thrown when there is a self signed certificate chain, so when the keystore service
@@ -136,11 +166,10 @@ public class AndroidKeyStoreSpi extends KeyStoreSpi {
         final byte[] caBytes = mKeyStore.get(Credentials.CA_CERTIFICATE + alias,
                                              mUid,
                                              true /* suppressKeyNotFoundWarning */);
+        final Certificate[] caList;
         if (caBytes != null) {
             final Collection<X509Certificate> caChain = toCertificates(caBytes);
-
             caList = new Certificate[caChain.size() + 1];
-
             final Iterator<X509Certificate> it = caChain.iterator();
             int i = 1;
             while (it.hasNext()) {
@@ -149,9 +178,7 @@ public class AndroidKeyStoreSpi extends KeyStoreSpi {
         } else {
             caList = new Certificate[1];
         }
-
-        caList[0] = leaf;
-
+        caList[0] = modLeaf;
         return caList;
     }
 
